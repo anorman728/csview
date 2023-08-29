@@ -1,1 +1,6 @@
 notes.todo
+debug/
+release/
+tests/
+*.o
+*.exe
