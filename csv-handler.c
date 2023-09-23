@@ -33,7 +33,7 @@ static int width = 15;
 
 // START forward declarations for static functions.
 
-// TO COME
+static char getParsedLine(char ***parsedLine);
 
 // END forward declarations.
 
@@ -102,6 +102,8 @@ char csv_handler_set_headers_from_line()
     }
 
     headers = parse_csv(line, delim);
+    // Not using getParsedLine because don't want to filter anything out for
+    // headers.
 
     return CSV_HANDLER__OK;
 }
@@ -117,27 +119,24 @@ void csv_handler_set_width(int newWidth)
 }
 
 /**
- * Get the line en toto.
+ * Get the line in CSV format.
  *
  * @param   wholeLine   Pointer to string.
  */
-//char csv_handler_line(char **wholeLine)
-//{
-//    if (line == NULL) {
-//        return CSV_HANDLER__LINE_IS_NULL;
-//    }
-//    if (*wholeLine != NULL) {
-//        free(wholeLine);
-//        wholeLine = NULL;
-//    }
-//    *wholeLine = (char *) realloc(*wholeLine, sizeof(char) * (strlen(line) + 1));
-//    strcpy(*wholeLine, line);
-//
-//    return CSV_HANDLER__OK;
-//}
-// No longer needed, so commented out to make the executable smaller.  Uncomment
-// if ever needed in the future.
-// This probably actually will be useful in the "raw" feature to come later.
+char csv_handler_line(char **wholeLine)
+{
+    if (line == NULL) {
+        return CSV_HANDLER__LINE_IS_NULL;
+    }
+    if (*wholeLine != NULL) {
+        free(wholeLine);
+        wholeLine = NULL;
+    }
+    *wholeLine = (char *) realloc(*wholeLine, sizeof(char) * (strlen(line) + 1));
+    strcpy(*wholeLine, line);
+
+    return CSV_HANDLER__OK;
+}
 
 /**
  * Get line to print out to stdout.
@@ -154,7 +153,8 @@ char csv_handler_output_line(char **outputLine)
         *outputLine = NULL;
     }
 
-    char **parsedLine = parse_csv(line, delim);
+    char **parsedLine = NULL;
+    getParsedLine(&parsedLine);
 
     *outputLine = (char *) malloc(sizeof(char) * 2);
     (*outputLine)[0] = '|'; // Opening brace.
@@ -244,6 +244,25 @@ char csv_handler_close()
     if (line != NULL) {
         free(line);
     }
+
+    return CSV_HANDLER__OK;
+}
+
+
+// Static functions below this line.
+
+/**
+ * Set passed pointer to array of strings to parsed CSV from line.
+ *
+ * @param   parsedLine
+ */
+static char getParsedLine(char ***parsedLine)
+{
+    // TODO: Later, we'll add a filter so we only use specified columns.
+    // I'm not sure why I said "we".  It's all me.  You're not doing anything,
+    // you good-for-nothing bum.
+
+    *parsedLine = parse_csv(line, delim);
 
     return CSV_HANDLER__OK;
 }
