@@ -140,7 +140,7 @@ char csv_handler_output_line(char **outputLine)
         for (int j = 0; j < contentLength; j++) {
             if (parsedLine[i][j] == '\n') {
                 // Don't display newline.  It's confusing in this context.
-                (*outputLine)[initialLen + j] = '\\';
+                (*outputLine)[initialLen + j] = ' ';
             } else {
                 (*outputLine)[initialLen + j] = parsedLine[i][j];
             }
