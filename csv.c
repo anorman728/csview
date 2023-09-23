@@ -15,7 +15,7 @@ void free_csv_line( char **parsed ) {
     free( parsed );
 }
 
-static int count_fields( const char *line, char del) {
+int count_fields( const char *line, char del) {
     const char *ptr;
     int cnt, fQuote;
 

@@ -1,6 +1,6 @@
 CC=gcc
 P=csview
-#OBJECTS=csv.o csv-handler.o # Dependencies that need to be compiled first.
+OBJECTS=csv.o csv-handler.o # Dependencies that need to be compiled first.
 OUTDIR=./debug
 RELDIR=./release
 TESTS=./tests

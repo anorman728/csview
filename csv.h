@@ -3,5 +3,6 @@
 
 char **parse_csv( const char *line, char del );
 void free_csv_line( char **parsed );
+int count_fields(const char *line, char del);
 
 #endif
