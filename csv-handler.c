@@ -111,20 +111,22 @@ char csv_handler_set_headers_from_line()
  *
  * @param   wholeLine   Pointer to string.
  */
-char csv_handler_line(char **wholeLine)
-{
-    if (line == NULL) {
-        return CSV_HANDLER__LINE_IS_NULL;
-    }
-    if (*wholeLine != NULL) {
-        free(wholeLine);
-        wholeLine = NULL;
-    }
-    *wholeLine = (char *) realloc(*wholeLine, sizeof(char) * (strlen(line) + 1));
-    strcpy(*wholeLine, line);
-
-    return CSV_HANDLER__OK;
-}
+//char csv_handler_line(char **wholeLine)
+//{
+//    if (line == NULL) {
+//        return CSV_HANDLER__LINE_IS_NULL;
+//    }
+//    if (*wholeLine != NULL) {
+//        free(wholeLine);
+//        wholeLine = NULL;
+//    }
+//    *wholeLine = (char *) realloc(*wholeLine, sizeof(char) * (strlen(line) + 1));
+//    strcpy(*wholeLine, line);
+//
+//    return CSV_HANDLER__OK;
+//}
+// No longer needed, so commented out to make the executable smaller.  Uncomment
+// if ever needed in the future.
 
 /**
  * Get line to print out to stdout.
@@ -140,11 +142,8 @@ char csv_handler_output_line(char **outputLine)
         free(*outputLine);
         *outputLine = NULL;
     }
-    char *wholeLine = NULL;
-    csv_handler_line(&wholeLine);
-    // TODO: Get rid of this-- All it does is add memory and complexity.
 
-    char **parsedLine = parse_csv(wholeLine, delim);
+    char **parsedLine = parse_csv(line, delim);
 
     *outputLine = (char *) malloc(sizeof(char) * 2);
     (*outputLine)[0] = '|'; // Opening brace.
@@ -183,7 +182,6 @@ char csv_handler_output_line(char **outputLine)
     }
 
     free_csv_line(parsedLine);
-    free(wholeLine);
 
     return CSV_HANDLER__OK;
 }
