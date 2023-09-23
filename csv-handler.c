@@ -107,6 +107,16 @@ char csv_handler_set_headers_from_line()
 }
 
 /**
+ * Change the width.
+ *
+ * @param   newWidth
+ */
+void csv_handler_set_width(int newWidth)
+{
+    width = newWidth;
+}
+
+/**
  * Get the line en toto.
  *
  * @param   wholeLine   Pointer to string.
@@ -127,6 +137,7 @@ char csv_handler_set_headers_from_line()
 //}
 // No longer needed, so commented out to make the executable smaller.  Uncomment
 // if ever needed in the future.
+// This probably actually will be useful in the "raw" feature to come later.
 
 /**
  * Get line to print out to stdout.

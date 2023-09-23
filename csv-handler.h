@@ -13,6 +13,8 @@ char csv_handler_read_next_line();
 
 char csv_handler_set_headers_from_line();
 
+void csv_handler_set_width(int newWidth);
+
 char csv_handler_line(char **wholeLine);
 
 char csv_handler_output_line(char **outputLine);

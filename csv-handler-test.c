@@ -10,6 +10,8 @@ int main()
     char *outputLine = NULL;
     char *borderLine = NULL;
 
+    csv_handler_set_width(17);
+
     // Print header, with border.
     csv_handler_read_next_line(); // Not bothering checking RCs right now.
     csv_handler_border_line(&borderLine);
