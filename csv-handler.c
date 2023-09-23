@@ -16,6 +16,16 @@ static char delim = ',';
 static char *line = NULL;
 
 /**
+ * Headers as array of strings.
+ */
+static char **headers = NULL;
+
+/**
+ * Count of fields in file.
+ */
+static int countFields = -1;
+
+/**
  * Width of cells to output.
  */
 static int width = 15;
@@ -57,8 +67,8 @@ char csv_handler_read_next_line()
         strcat(line, buff);
 
         size_t lst = strlen(line) - 1;
-        if (line[lst] == '\n' && (count_fields(line, delim) != -1)) {
-            // If parse_csv is null, then that means the line is not parseable
+        if (line[lst] == '\n' && ((countFields = count_fields(line, delim)) != -1)) {
+            // If count_fields is -1, then that means the line is not parseable
             // as a CSV line, which probably means that the file has a field
             // with a line break in it, meaning we have to include both of the
             // *file*'s lines as part of the same logical CSV line.  Example:
@@ -75,6 +85,23 @@ char csv_handler_read_next_line()
             break;
         }
     }
+
+    return CSV_HANDLER__OK;
+}
+
+/**
+ * Set the headers from the line in memory.
+ */
+char csv_handler_set_headers_from_line()
+{
+    if (line == NULL) {
+        return CSV_HANDLER__LINE_IS_NULL;
+    }
+    if (headers != NULL) {
+        return CSV_HANDLER__ALREADY_SET_HEADER;
+    }
+
+    headers = parse_csv(line, delim);
 
     return CSV_HANDLER__OK;
 }
@@ -115,6 +142,7 @@ char csv_handler_output_line(char **outputLine)
     }
     char *wholeLine = NULL;
     csv_handler_line(&wholeLine);
+    // TODO: Get rid of this-- All it does is add memory and complexity.
 
     char **parsedLine = parse_csv(wholeLine, delim);
 
@@ -156,6 +184,17 @@ char csv_handler_output_line(char **outputLine)
 
     free_csv_line(parsedLine);
     free(wholeLine);
+
+    return CSV_HANDLER__OK;
+}
+
+/**
+ * Close out everything.
+ */
+char csv_handler_close()
+{
+    free_csv_line(headers);
+    free(line);
 
     return CSV_HANDLER__OK;
 }
