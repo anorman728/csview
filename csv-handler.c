@@ -189,12 +189,52 @@ char csv_handler_output_line(char **outputLine)
 }
 
 /**
+ * Get border to print out.
+ *
+ * @param   outputLine
+ */
+char csv_handler_border_line(char **outputLine)
+{
+    if (countFields == -1) {
+        return CSV_HANDLER__LINE_IS_NULL; // Not sure what else to call this.
+    }
+
+    if (*outputLine != NULL) {
+        free(*outputLine);
+        *outputLine = NULL;
+    }
+
+    int lineLen = (width + 1) * countFields + 1;
+    // I almost wanted to name this "linLen" because then it would be pronounced
+    // "len-len" and that would be funny.
+    // (width + 1) is the width of every field plus its left brace.
+    // + 2 is one for rightmost brace.
+    // Null terminator is *not* included here, because want to match what the
+    // result of strlen would be.
+
+    *outputLine = (char *) malloc(sizeof(char) * (lineLen + 1));
+    (*outputLine)[0] = '+';
+
+    for (int i = 1; i < lineLen - 1; i++) {
+        (*outputLine)[i] = '-';
+    }
+    (*outputLine)[lineLen - 1] = '+';
+    (*outputLine)[lineLen] = '\0';
+
+    return CSV_HANDLER__OK;
+}
+
+/**
  * Close out everything.
  */
 char csv_handler_close()
 {
-    free_csv_line(headers);
-    free(line);
+    if (headers != NULL) {
+        free_csv_line(headers);
+    }
+    if (line != NULL) {
+        free(line);
+    }
 
     return CSV_HANDLER__OK;
 }

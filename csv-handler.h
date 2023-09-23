@@ -17,6 +17,8 @@ char csv_handler_line(char **wholeLine);
 
 char csv_handler_output_line(char **outputLine);
 
+char csv_handler_border_line(char **outputLine);
+
 char csv_handler_close();
 
 #endif
