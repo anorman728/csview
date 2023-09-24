@@ -3,23 +3,33 @@
 
 // Constants
 
-#define CSV_HANDLER__OK                     0
-#define CSV_HANDLER__FILE_NOT_FOUND         1
-#define CSV_HANDLER__EOF                    2
-#define CSV_HANDLER__LINE_IS_NULL           3
-#define CSV_HANDLER__ALREADY_SET_HEADER     4
+#define CSV_HANDLER__OK                 0
+#define CSV_HANDLER__FILE_NOT_FOUND     1
+#define CSV_HANDLER__EOF                2
+#define CSV_HANDLER__LINE_IS_NULL       3
+#define CSV_HANDLER__ALREADY_SET        4
 
+// Functions for typical output.
 char csv_handler_read_next_line();
 
 char csv_handler_set_headers_from_line();
-
-void csv_handler_set_width(int newWidth);
 
 char csv_handler_line(char **wholeLine);
 
 char csv_handler_output_line(char **outputLine);
 
 char csv_handler_border_line(char **outputLine);
+
+// Functions for transposed output.
+
+char csv_handler_initialize_transpose();
+
+char csv_handler_transposed_line(char **outputLine);
+
+char csv_handler_transposed_border_line(char **outputLine);
+
+// Other functions.
+void csv_handler_set_width(int newWidth);
 
 char csv_handler_close();
 

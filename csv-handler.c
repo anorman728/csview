@@ -30,10 +30,19 @@ static int countFields = -1;
  */
 static int width = 15;
 
+/**
+ * Array of array of strings, terminated by a NULL at the end.  Good grief;
+ * this will be annoying.  Holds the entirety of the input file except what is
+ * filtered out.  Currently only used for displaying transposed output.
+ */
+static char ***entireInput = NULL;
+
 
 // START forward declarations for static functions.
 
 static char getParsedLine(char ***parsedLine);
+
+static char appendBoxedValue(char **outputLine, char *newValue);
 
 // END forward declarations.
 
@@ -98,7 +107,7 @@ char csv_handler_set_headers_from_line()
         return CSV_HANDLER__LINE_IS_NULL;
     }
     if (headers != NULL) {
-        return CSV_HANDLER__ALREADY_SET_HEADER;
+        return CSV_HANDLER__ALREADY_SET;
     }
 
     headers = parse_csv(line, delim);
@@ -106,16 +115,6 @@ char csv_handler_set_headers_from_line()
     // headers.
 
     return CSV_HANDLER__OK;
-}
-
-/**
- * Change the width.
- *
- * @param   newWidth
- */
-void csv_handler_set_width(int newWidth)
-{
-    width = newWidth;
 }
 
 /**
@@ -145,14 +144,14 @@ char csv_handler_line(char **wholeLine)
  */
 char csv_handler_output_line(char **outputLine)
 {
-    if (line == NULL) {
-        return CSV_HANDLER__LINE_IS_NULL;
-    }
     if (*outputLine != NULL) {
         free(*outputLine);
         *outputLine = NULL;
     }
 
+    if (line == NULL) {
+        return CSV_HANDLER__LINE_IS_NULL;
+    }
     char **parsedLine = NULL;
     getParsedLine(&parsedLine);
 
@@ -161,35 +160,7 @@ char csv_handler_output_line(char **outputLine)
     (*outputLine)[1] = '\0';
 
     for (int i = 0; parsedLine[i] != NULL; i++) {
-        // Add in the next segment.
-
-        int initialLen = strlen(*outputLine);
-        *outputLine = (char *) realloc(*outputLine, sizeof(char) * (initialLen + 2 + width));
-        // +2 is one for '|' and one for null terminator.
-
-        // Only want to concat part of the string, so need to do some funky stuff.
-
-        int contentLength = strlen(parsedLine[i]);
-        if (contentLength > width) {
-            contentLength = width;
-        }
-        int fillerLength = width - contentLength; // Will be zero if content is larger than width.
-
-        for (int j = 0; j < contentLength; j++) {
-            if (parsedLine[i][j] == '\n') {
-                // Don't display newline.  It's confusing in this context.
-                (*outputLine)[initialLen + j] = ' ';
-            } else {
-                (*outputLine)[initialLen + j] = parsedLine[i][j];
-            }
-            // Note that this starts with j = 0, so overwriting the null terminator.
-        }
-        for (int j = 0; j < fillerLength; j++) {
-            (*outputLine)[initialLen + contentLength + j] = ' ';
-        }
-
-        (*outputLine)[initialLen + width] = '|'; // Next brace.
-        (*outputLine)[initialLen + width + 1] = '\0'; // Putting back in the null terminator.
+        appendBoxedValue(outputLine, parsedLine[i]);
     }
 
     free_csv_line(parsedLine);
@@ -234,6 +205,135 @@ char csv_handler_border_line(char **outputLine)
 }
 
 /**
+ * Read the entirety of the file (that's desired) into memory so that can output
+ * it as transposed.
+ */
+char csv_handler_initialize_transpose()
+{
+    if (entireInput != NULL) {
+        return CSV_HANDLER__ALREADY_SET;
+    }
+
+    char **parsedLine = NULL;
+    int arrLen = 0;
+
+    while (csv_handler_read_next_line() == CSV_HANDLER__OK) {
+        getParsedLine(&parsedLine);
+        arrLen++;
+        entireInput = (char ***) realloc(entireInput, sizeof(char ***) * arrLen);
+        entireInput[arrLen - 1] = (char **) malloc(sizeof(char **) * (countFields + 1));
+
+        int i = 0;
+        for (; parsedLine[i] != NULL; i++) {
+            entireInput[arrLen - 1][i] = (char *) malloc(sizeof(char) * strlen(parsedLine[i]) + 1);
+            strcpy(entireInput[arrLen - 1][i], parsedLine[i]);
+        }
+
+        entireInput[arrLen - 1][i] = NULL;
+
+        free_csv_line(parsedLine);
+    }
+
+    entireInput = (char ***) realloc(entireInput, sizeof(char **) * (arrLen + 1));
+    entireInput[arrLen] = NULL;
+
+    return CSV_HANDLER__OK;
+}
+
+/**
+ * Get transposed line to print to stdout.
+ *
+ * @param   outputLine
+ */
+char csv_handler_transposed_line(char **outputLine)
+{
+    // This one's very different.  Everything is already stored in memory in
+    // entireInput, so go down the line from there.
+
+    static int ind = 0;
+
+    if (*outputLine != NULL) {
+        free(*outputLine);
+        *outputLine = NULL;
+    }
+
+    if (entireInput == NULL) {
+        return CSV_HANDLER__LINE_IS_NULL;
+    }
+
+    if (entireInput[0][ind] == NULL) {
+        return CSV_HANDLER__EOF;
+    }
+
+    *outputLine = (char *) malloc(sizeof(char) * 2);
+    (*outputLine)[0] = '|'; // Opening brace.
+    (*outputLine)[1] = '\0';
+
+    for (int i = 0; entireInput[i] != NULL; i++) {
+        appendBoxedValue(outputLine, entireInput[i][ind]);
+
+        if (i == 0) {
+            *outputLine = realloc(*outputLine, sizeof(char) * (strlen(*outputLine) + 2));
+            strcat(*outputLine, "|");
+        }
+    }
+
+    ind++;
+
+    return CSV_HANDLER__OK;
+}
+
+/**
+ * Get transposed border line to print to stdout.
+ *
+ * @param   outputLine
+ */
+char csv_handler_transposed_border_line(char **outputLine)
+{
+    if (*outputLine != NULL) {
+        free(*outputLine);
+        *outputLine = NULL;
+    }
+
+    if (entireInput == NULL) {
+        return CSV_HANDLER__LINE_IS_NULL;
+    }
+
+    int len = 0;
+
+    // Count up the number of fields in the array.
+    for (;entireInput[++len] != NULL;){};
+
+    len = len * (width + 1) + 2;
+    // len is number of elements in first row, so multiply it by field width
+    // (plus one for |), then +1 for opening |, then +1 for the second | for the
+    // headers to the left.  No null terminator to match strlen.
+
+    *outputLine = (char *) malloc(sizeof(char) * (len + 1));
+
+    (*outputLine)[0] = '+';
+
+    for (int i = 1; i < len - 1; i++) {
+        (*outputLine)[i] = '-';
+    }
+
+    (*outputLine)[len - 1] = '+';
+    (*outputLine)[len] = '\0';
+
+    return CSV_HANDLER__OK;
+}
+
+/**
+ * Change the width.
+ *
+ * @param   newWidth
+ */
+void csv_handler_set_width(int newWidth)
+{
+    width = newWidth;
+}
+
+/**
  * Close out everything.
  */
 char csv_handler_close()
@@ -243,6 +343,13 @@ char csv_handler_close()
     }
     if (line != NULL) {
         free(line);
+    }
+    if (entireInput != NULL) {
+        for (int i = 0; entireInput[i] != NULL; i++) {
+            free_csv_line(entireInput[i]);
+            entireInput[i] = NULL;
+        }
+        free(entireInput);
     }
 
     return CSV_HANDLER__OK;
@@ -263,6 +370,44 @@ static char getParsedLine(char ***parsedLine)
     // you good-for-nothing bum.
 
     *parsedLine = parse_csv(line, delim);
+
+    return CSV_HANDLER__OK;
+}
+
+/**
+ * Append string with new boxed value for printing to output.
+ *
+ * @param   outputLine
+ */
+static char appendBoxedValue(char **outputLine, char *newValue)
+{
+    int initialLen = strlen(*outputLine);
+    *outputLine = (char *) realloc(*outputLine, sizeof(char) * (initialLen + 2 + width));
+    // +2 is one for '|' and one for null terminator.
+
+    // Only want to concat part of the string, so need to do some funky stuff.
+
+    int contentLength = strlen(newValue);
+    if (contentLength > width) {
+        contentLength = width;
+    }
+    int fillerLength = width - contentLength; // Will be zero if content is larger than width.
+
+    for (int j = 0; j < contentLength; j++) {
+        if (newValue[j] == '\n') {
+            // Don't display newline.  It's confusing in this context.
+            (*outputLine)[initialLen + j] = ' ';
+        } else {
+            (*outputLine)[initialLen + j] = newValue[j];
+        }
+        // Note that this starts with j = 0, so overwriting the null terminator.
+    }
+    for (int j = 0; j < fillerLength; j++) {
+        (*outputLine)[initialLen + contentLength + j] = ' ';
+    }
+
+    (*outputLine)[initialLen + width] = '|'; // Next brace.
+    (*outputLine)[initialLen + width + 1] = '\0'; // Putting back in the null terminator.
 
     return CSV_HANDLER__OK;
 }
