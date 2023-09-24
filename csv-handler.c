@@ -21,9 +21,15 @@ static char *line = NULL;
 static char **headers = NULL;
 
 /**
- * Count of fields in file.
+ * Count of fields in source file.
  */
 static int countFields = -1;
+
+/**
+ * Count of fields displayed in output.
+ */
+static int printedFieldCount = -1;
+
 
 /**
  * Width of cells to output.
@@ -91,6 +97,7 @@ char csv_handler_read_next_line()
             // null.
 
             line[lst] = '\0'; // Removing newline, but not reallocing.
+            printedFieldCount = countFields; // By default, print everything until told otherwise.
             break;
         }
     }
@@ -184,7 +191,7 @@ char csv_handler_border_line(char **outputLine)
         *outputLine = NULL;
     }
 
-    int lineLen = (width + 1) * countFields + 1;
+    int lineLen = (width + 1) * printedFieldCount + 1;
     // I almost wanted to name this "linLen" because then it would be pronounced
     // "len-len" and that would be funny.
     // (width + 1) is the width of every field plus its left brace.
