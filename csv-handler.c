@@ -272,18 +272,20 @@ char csv_handler_transposed_line(char **outputLine)
         return CSV_HANDLER__EOF;
     }
 
-    *outputLine = (char *) malloc(sizeof(char) * 2);
-    (*outputLine)[0] = '|'; // Opening brace.
-    (*outputLine)[1] = '\0';
+    *outputLine = (char *) malloc(sizeof(char));
+    (*outputLine)[0] = '\0'; // Start as empty string.
 
     for (int i = 0; entireInput[i] != NULL; i++) {
         appendBoxedValue(outputLine, entireInput[i][ind]);
 
         if (i == 0) {
-            *outputLine = realloc(*outputLine, sizeof(char) * (strlen(*outputLine) + 2));
-            strcat(*outputLine, "|");
+            //*outputLine = realloc(*outputLine, sizeof(char) * (strlen(*outputLine) + 2));
+            //strcat(*outputLine, "|");
+            (*outputLine)[strlen(*outputLine) - 1] = '{';
         }
     }
+
+    (*outputLine)[strlen(*outputLine) - 1] = '}';
 
     ind++;
 
@@ -311,20 +313,17 @@ char csv_handler_transposed_border_line(char **outputLine)
     // Count up the number of fields in the array.
     for (;entireInput[++len] != NULL;){};
 
-    len = len * (width + 1) + 2;
+    len = (len * (width + 1) - 1);
     // len is number of elements in first row, so multiply it by field width
-    // (plus one for |), then +1 for opening |, then +1 for the second | for the
-    // headers to the left.  No null terminator to match strlen.
+    // (plus one for |).  There is no opening | for transposed, and no closing
+    // |, so need to subtract off one.  No null terminator to match strlen.
 
     *outputLine = (char *) malloc(sizeof(char) * (len + 1));
 
-    (*outputLine)[0] = '+';
-
-    for (int i = 1; i < len - 1; i++) {
+    for (int i = 0; i < len; i++) {
         (*outputLine)[i] = '-';
     }
 
-    (*outputLine)[len - 1] = '+';
     (*outputLine)[len] = '\0';
 
     return CSV_HANDLER__OK;
