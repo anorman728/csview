@@ -63,6 +63,11 @@ char csv_handler_read_next_line()
     }
 
     line = (char *) malloc(sizeof(char));
+
+    if (line == NULL) {
+        return CSV_HANDLER__OUT_OF_MEMORY;
+    }
+
     line[0] = '\0'; // Empty string for now because we don't know how long it
     // will be.
 
@@ -79,6 +84,11 @@ char csv_handler_read_next_line()
             line,
             sizeof(char) * (strlen(line) + strlen(buff) + 1) // +1 for null terminator
         );
+
+        if (line == NULL) {
+            return CSV_HANDLER__OUT_OF_MEMORY;
+        }
+
         strcat(line, buff);
 
         size_t lst = strlen(line) - 1;
@@ -139,6 +149,11 @@ char csv_handler_line(char **wholeLine)
         wholeLine = NULL;
     }
     *wholeLine = (char *) realloc(*wholeLine, sizeof(char) * (strlen(line) + 1));
+
+    if (*wholeLine == NULL) {
+        return CSV_HANDLER__OUT_OF_MEMORY;
+    }
+
     strcpy(*wholeLine, line);
 
     return CSV_HANDLER__OK;
@@ -163,6 +178,11 @@ char csv_handler_output_line(char **outputLine)
     getParsedLine(&parsedLine);
 
     *outputLine = (char *) malloc(sizeof(char) * 2);
+
+    if (*outputLine == NULL) {
+        return CSV_HANDLER__OUT_OF_MEMORY;
+    }
+
     (*outputLine)[0] = '|'; // Opening brace.
     (*outputLine)[1] = '\0';
 
@@ -200,6 +220,11 @@ char csv_handler_border_line(char **outputLine)
     // result of strlen would be.
 
     *outputLine = (char *) malloc(sizeof(char) * (lineLen + 1));
+
+    if (*outputLine == NULL) {
+        return CSV_HANDLER__OUT_OF_MEMORY;
+    }
+
     (*outputLine)[0] = '+';
 
     for (int i = 1; i < lineLen - 1; i++) {
@@ -228,11 +253,25 @@ char csv_handler_initialize_transpose()
         getParsedLine(&parsedLine);
         arrLen++;
         entireInput = (char ***) realloc(entireInput, sizeof(char ***) * arrLen);
+
+        if (entireInput == NULL) {
+            return CSV_HANDLER__OUT_OF_MEMORY;
+        }
+
         entireInput[arrLen - 1] = (char **) malloc(sizeof(char **) * (countFields + 1));
+
+        if (entireInput[arrLen - 1] == NULL) {
+            return CSV_HANDLER__OUT_OF_MEMORY;
+        }
 
         int i = 0;
         for (; parsedLine[i] != NULL; i++) {
             entireInput[arrLen - 1][i] = (char *) malloc(sizeof(char) * strlen(parsedLine[i]) + 1);
+
+            if (entireInput[arrLen - 1] == NULL) {
+                return CSV_HANDLER__OUT_OF_MEMORY;
+            }
+
             strcpy(entireInput[arrLen - 1][i], parsedLine[i]);
         }
 
@@ -242,6 +281,11 @@ char csv_handler_initialize_transpose()
     }
 
     entireInput = (char ***) realloc(entireInput, sizeof(char **) * (arrLen + 1));
+
+    if (entireInput == NULL) {
+        return CSV_HANDLER__OUT_OF_MEMORY;
+    }
+
     entireInput[arrLen] = NULL;
 
     return CSV_HANDLER__OK;
@@ -273,6 +317,11 @@ char csv_handler_transposed_line(char **outputLine)
     }
 
     *outputLine = (char *) malloc(sizeof(char));
+
+    if (*outputLine == NULL) {
+        return CSV_HANDLER__OUT_OF_MEMORY;
+    }
+
     (*outputLine)[0] = '\0'; // Start as empty string.
 
     for (int i = 0; entireInput[i] != NULL; i++) {
@@ -319,6 +368,10 @@ char csv_handler_transposed_border_line(char **outputLine)
     // |, so need to subtract off one.  No null terminator to match strlen.
 
     *outputLine = (char *) malloc(sizeof(char) * (len + 1));
+
+    if (*outputLine == NULL) {
+        return CSV_HANDLER__OUT_OF_MEMORY;
+    }
 
     for (int i = 0; i < len; i++) {
         (*outputLine)[i] = '-';
@@ -390,6 +443,10 @@ static char appendBoxedValue(char **outputLine, char *newValue)
     int initialLen = strlen(*outputLine);
     *outputLine = (char *) realloc(*outputLine, sizeof(char) * (initialLen + 2 + width));
     // +2 is one for '|' and one for null terminator.
+
+    if (*outputLine == NULL) {
+        return CSV_HANDLER__OUT_OF_MEMORY;
+    }
 
     // Only want to concat part of the string, so need to do some funky stuff.
 

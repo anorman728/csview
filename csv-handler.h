@@ -8,6 +8,7 @@
 #define CSV_HANDLER__EOF                2
 #define CSV_HANDLER__LINE_IS_NULL       3
 #define CSV_HANDLER__ALREADY_SET        4
+#define CSV_HANDLER__OUT_OF_MEMORY      5
 
 // Functions for typical output.
 char csv_handler_read_next_line();
