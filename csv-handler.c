@@ -21,15 +21,20 @@ static char *line = NULL;
 static char **headers = NULL;
 
 /**
- * Count of fields in source file.
+ * The fields to be included in output.  Terminated by -1.  If NULL, then
+ * include all values.
  */
-static int countFields = -1;
+static int *selectedFields = NULL;
 
 /**
- * Count of fields displayed in output.
+ * Count of headers in source file.
  */
-static int printedFieldCount = -1;
+static int countHeaders = -1;
 
+/**
+ * Count of fields displayed in output.  -1 means display everything.
+ */
+static int selectedFieldCount = -1;
 
 /**
  * Width of cells to output.
@@ -49,6 +54,14 @@ static char ***entireInput = NULL;
 static char getParsedLine(char ***parsedLine);
 
 static char appendBoxedValue(char **outputLine, char *newValue);
+
+static int getSelectedFieldCount();
+
+static char setFieldsForTransposed(char *fields);
+
+static char *getHeaderFromPosition(int pos);
+
+static char unparseValue(char **value);
 
 // END forward declarations.
 
@@ -92,7 +105,7 @@ char csv_handler_read_next_line()
         strcat(line, buff);
 
         size_t lst = strlen(line) - 1;
-        if (line[lst] == '\n' && ((countFields = count_fields(line, delim)) != -1)) {
+        if (line[lst] == '\n' && ((countHeaders = count_fields(line, delim)) != -1)) {
             // If count_fields is -1, then that means the line is not parseable
             // as a CSV line, which probably means that the file has a field
             // with a line break in it, meaning we have to include both of the
@@ -107,7 +120,6 @@ char csv_handler_read_next_line()
             // null.
 
             line[lst] = '\0'; // Removing newline, but not reallocing.
-            printedFieldCount = countFields; // By default, print everything until told otherwise.
             break;
         }
     }
@@ -165,22 +177,46 @@ char csv_handler_output_headers(char **outputLine)
  *
  * @param   wholeLine   Pointer to string.
  */
-char csv_handler_line(char **wholeLine)
+char csv_handler_raw_line(char **wholeLine)
 {
     if (line == NULL) {
         return CSV_HANDLER__LINE_IS_NULL;
     }
+
     if (*wholeLine != NULL) {
-        free(wholeLine);
-        wholeLine = NULL;
+        free(*wholeLine);
+        *wholeLine = NULL;
     }
-    *wholeLine = (char *) realloc(*wholeLine, sizeof(char) * (strlen(line) + 1));
+
+    char **parsedLine = NULL;
+    getParsedLine(&parsedLine);
+
+    *wholeLine = malloc(sizeof(char));
 
     if (*wholeLine == NULL) {
         return CSV_HANDLER__OUT_OF_MEMORY;
     }
 
-    strcpy(*wholeLine, line);
+    strcpy(*wholeLine, "");
+
+    char rc = 0;
+    for (int i = 0; parsedLine[i] != NULL; i++) {
+        if ((rc = unparseValue(&(parsedLine[i]))) != CSV_HANDLER__OK) {
+            return rc;
+        }
+        *wholeLine = realloc(
+            *wholeLine,
+            sizeof(char) * (strlen(*wholeLine) + strlen(parsedLine[i]) + 2)
+        );
+        if (*wholeLine == NULL) {
+            return CSV_HANDLER__OUT_OF_MEMORY;
+        }
+        strcat(*wholeLine, parsedLine[i]);
+        strcat(*wholeLine, ",");
+    }
+
+    (*wholeLine)[strlen(*wholeLine) - 1] = '\0';  // Don't resize.
+    free_csv_line(parsedLine);
 
     return CSV_HANDLER__OK;
 }
@@ -203,7 +239,7 @@ char csv_handler_output_line(char **outputLine)
     char **parsedLine = NULL;
     getParsedLine(&parsedLine);
 
-    *outputLine = (char *) malloc(sizeof(char) * 2);
+    *outputLine = malloc(sizeof(char) * 2);
 
     if (*outputLine == NULL) {
         return CSV_HANDLER__OUT_OF_MEMORY;
@@ -231,7 +267,7 @@ char csv_handler_output_line(char **outputLine)
  */
 char csv_handler_border_line(char **outputLine)
 {
-    if (countFields == -1) {
+    if (countHeaders == -1) {
         return CSV_HANDLER__LINE_IS_NULL; // Not sure what else to call this.
     }
 
@@ -240,7 +276,7 @@ char csv_handler_border_line(char **outputLine)
         *outputLine = NULL;
     }
 
-    int lineLen = (width + 1) * printedFieldCount + 1;
+    int lineLen = (width + 1) * getSelectedFieldCount() + 1;
     // I almost wanted to name this "linLen" because then it would be pronounced
     // "len-len" and that would be funny.
     // (width + 1) is the width of every field plus its left brace.
@@ -306,7 +342,7 @@ char csv_handler_output_vertical_entry(char **outputEntry)
         if (i != 0) {
             strcat(*outputEntry, "\n");
         }
-        strcat(*outputEntry, headers[i]);
+        strcat(*outputEntry, getHeaderFromPosition(i));
         strcat(*outputEntry, ": ");
         strcat(*outputEntry, parsedLine[i]);
     }
@@ -347,8 +383,10 @@ char csv_handler_vertical_border_line(char **outputLine)
 /**
  * Read the entirety of the file (that's desired) into memory so that can output
  * it as transposed.
+ *
+ * @param   fields      Passed fields, if any.
  */
-char csv_handler_initialize_transpose()
+char csv_handler_initialize_transpose(char *fields)
 {
     if (entireInput != NULL) {
         return CSV_HANDLER__ALREADY_SET;
@@ -356,17 +394,22 @@ char csv_handler_initialize_transpose()
 
     char **parsedLine = NULL;
     int arrLen = 0;
+    char rc = 0;
 
     while (csv_handler_read_next_line() == CSV_HANDLER__OK) {
+        if ((rc = setFieldsForTransposed(fields)) != CSV_HANDLER__OK) {
+            return rc;
+        }
+
         getParsedLine(&parsedLine);
         arrLen++;
-        entireInput = (char ***) realloc(entireInput, sizeof(char ***) * arrLen);
+        entireInput = realloc(entireInput, sizeof(char ***) * arrLen);
 
         if (entireInput == NULL) {
             return CSV_HANDLER__OUT_OF_MEMORY;
         }
 
-        entireInput[arrLen - 1] = (char **) malloc(sizeof(char **) * (countFields + 1));
+        entireInput[arrLen - 1] = (char **) malloc(sizeof(char **) * (countHeaders + 1));
 
         if (entireInput[arrLen - 1] == NULL) {
             return CSV_HANDLER__OUT_OF_MEMORY;
@@ -502,15 +545,54 @@ void csv_handler_set_width(int newWidth)
 }
 
 /**
+ * Set the selected fields.  (String input will be same as CSV format.)
+ *
+ * @param   fields
+ */
+char csv_handler_set_selected_fields(char *fields)
+{
+    if (headers == NULL) {
+        return CSV_HANDLER__HEADERS_NOT_SET;
+    }
+    if (selectedFields != NULL) {
+        return CSV_HANDLER__ALREADY_SET;
+    }
+
+    selectedFieldCount = count_fields(fields, delim);
+    selectedFields = malloc(sizeof(int) * (getSelectedFieldCount() + 1));
+    char **fieldArr = parse_csv(fields, delim);
+
+    if (fieldArr == NULL) {
+        return CSV_HANDLER__INVALID_INPUT;
+    }
+
+    for (int i = 0; fieldArr[i] != NULL; i++) {
+        selectedFields[i] = -1;
+        for (int j = 0; headers[j] != NULL; j++) {
+            if (strcmp(fieldArr[i], headers[j]) == 0) {
+                selectedFields[i] = j;
+            }
+        }
+        if (selectedFields[i] == -1) {
+            // Nothing was found, so return rc.
+            return CSV_HANDLER__HEADER_NOT_FOUND;
+        }
+    }
+
+    selectedFields[getSelectedFieldCount()] = -1;
+
+    free_csv_line(fieldArr);
+
+    return CSV_HANDLER__OK;
+}
+
+/**
  * Close out everything.
  */
 char csv_handler_close()
 {
     if (headers != NULL) {
         free_csv_line(headers);
-    }
-    if (line != NULL) {
-        free(line);
     }
     if (entireInput != NULL) {
         for (int i = 0; entireInput[i] != NULL; i++) {
@@ -519,6 +601,11 @@ char csv_handler_close()
         }
         free(entireInput);
     }
+
+    free(line);
+    line = NULL;
+    free(selectedFields);
+    selectedFields = NULL;
 
     return CSV_HANDLER__OK;
 }
@@ -533,11 +620,30 @@ char csv_handler_close()
  */
 static char getParsedLine(char ***parsedLine)
 {
-    // TODO: Later, we'll add a filter so we only use specified columns.
-    // I'm not sure why I said "we".  It's all me.  You're not doing anything,
-    // you good-for-nothing bum.
+    if (selectedFields == NULL) {
+        *parsedLine = parse_csv(line, delim);
+        if (*parsedLine == NULL) {
+            return CSV_HANDLER__OUT_OF_MEMORY;
+        }
 
-    *parsedLine = parse_csv(line, delim);
+        return CSV_HANDLER__OK;
+    }
+
+    char **dumParsed = parse_csv(line, delim);
+
+    *parsedLine = malloc(sizeof(char **) * (getSelectedFieldCount() + 1));
+    if (*parsedLine == NULL) {
+        return CSV_HANDLER__OUT_OF_MEMORY;
+    }
+
+    for (int i = 0, j = 0; (j = selectedFields[i]) != -1; i++) {
+        (*parsedLine)[i] = malloc(sizeof(char *) * (strlen(dumParsed[j]) + 1));
+        strcpy((*parsedLine)[i], dumParsed[j]);
+    }
+
+    (*parsedLine)[getSelectedFieldCount()] = NULL;
+
+    free_csv_line(dumParsed);
 
     return CSV_HANDLER__OK;
 }
@@ -550,7 +656,7 @@ static char getParsedLine(char ***parsedLine)
 static char appendBoxedValue(char **outputLine, char *newValue)
 {
     int initialLen = strlen(*outputLine);
-    *outputLine = (char *) realloc(*outputLine, sizeof(char) * (initialLen + 2 + width));
+    *outputLine = realloc(*outputLine, sizeof(char) * (initialLen + 2 + width));
     // +2 is one for '|' and one for null terminator.
 
     if (*outputLine == NULL) {
@@ -580,6 +686,96 @@ static char appendBoxedValue(char **outputLine, char *newValue)
 
     (*outputLine)[initialLen + width] = '|'; // Next brace.
     (*outputLine)[initialLen + width + 1] = '\0'; // Putting back in the null terminator.
+
+    return CSV_HANDLER__OK;
+}
+
+/**
+ * Get selected field count.
+ */
+static int getSelectedFieldCount()
+{
+    return (selectedFieldCount == -1) ? countHeaders : selectedFieldCount;
+}
+
+/**
+ * Set the fields for transposed output.  Helper function for initialization.
+ *
+ * @param   fields
+ */
+static char setFieldsForTransposed(char *fields)
+{
+    if (headers != NULL) {
+        return CSV_HANDLER__OK;
+    }
+
+    char rc;
+
+    if ((rc = csv_handler_set_headers_from_line()) != CSV_HANDLER__OK) {
+        return rc;
+    }
+
+    if ((rc = csv_handler_set_selected_fields(fields)) != CSV_HANDLER__OK) {
+        return rc;
+    }
+
+    return CSV_HANDLER__OK;
+}
+
+/**
+ * Get field name from position number.
+ *
+ * @param   pos
+ */
+static char *getHeaderFromPosition(int pos)
+{
+    if (selectedFieldCount == -1) {
+        return headers[pos];
+    } else {
+        return headers[selectedFields[pos]];
+    }
+}
+
+/**
+ * "Unparse" a specific value (i.e., cell), by surrounding with double-quotes if
+ * necessary and doubling double-quotes if necessary.
+ *
+ * @param   value
+ */
+static char unparseValue(char **value)
+{
+    char dontParse = 1;
+    char doubleQuotes = 0;
+    for (long int i = 0; (*value)[i]; i++) {
+        if ((*value)[i] == ',' || (*value)[i] == '\n') {
+            dontParse = 0;
+        } else if ((*value)[i] == '"') {
+            dontParse = 0;
+            doubleQuotes++;
+        }
+    }
+
+    if (dontParse) {
+        return CSV_HANDLER__OK;
+    }
+
+    char *newValue = malloc(sizeof(char) * (strlen(*value) + doubleQuotes + 3));
+    // +1 for null term, +2 for opening and closing double quotes.
+    strcpy(newValue, "\"");
+
+    for (long int i = 0, j = 1; (*value)[i] != '\0'; i++) {
+        newValue[j] = (*value)[i];
+        if (newValue[j] == '"') {
+            newValue[++j] = '"';
+        }
+        j++;
+    }
+
+    newValue[strlen(*value) + doubleQuotes + 1] = '\0';
+    strcat(newValue, "\"");
+
+    free(*value);
+    *value = newValue;
 
     return CSV_HANDLER__OK;
 }
