@@ -186,8 +186,11 @@ char csv_handler_output_line(char **outputLine)
     (*outputLine)[0] = '|'; // Opening brace.
     (*outputLine)[1] = '\0';
 
+    char rc = 0;
     for (int i = 0; parsedLine[i] != NULL; i++) {
-        appendBoxedValue(outputLine, parsedLine[i]);
+        if ((rc = appendBoxedValue(outputLine, parsedLine[i])) != CSV_HANDLER__OK) {
+            return rc;
+        }
     }
 
     free_csv_line(parsedLine);
@@ -403,8 +406,11 @@ char csv_handler_transposed_line(char **outputLine)
 
     (*outputLine)[0] = '\0'; // Start as empty string.
 
+    char rc = 0;
     for (int i = 0; entireInput[i] != NULL; i++) {
-        appendBoxedValue(outputLine, entireInput[i][ind]);
+        if ((rc = appendBoxedValue(outputLine, entireInput[i][ind])) != CSV_HANDLER__OK) {
+            return rc;
+        }
 
         if (i == 0) {
             //*outputLine = realloc(*outputLine, sizeof(char) * (strlen(*outputLine) + 2));
