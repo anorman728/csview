@@ -77,7 +77,7 @@ char csv_handler_read_next_line()
         if (fgets(buff, buffsize, stdin) == NULL) {
             // Note that this should happen *after* the final line has already
             // been read into memory.
-            return CSV_HANDLER__EOF;
+            return CSV_HANDLER__DONE;
         }
 
         line = (char *) realloc(
@@ -130,6 +130,32 @@ char csv_handler_set_headers_from_line()
     headers = parse_csv(line, delim);
     // Not using getParsedLine because don't want to filter anything out for
     // headers.
+
+    return CSV_HANDLER__OK;
+}
+
+/**
+ * Get a single header.
+ *
+ * @param   outputLine
+ */
+char csv_handler_output_headers(char **outputLine)
+{
+    static int ind = -1;
+
+    if (*outputLine != NULL) {
+        free(*outputLine);
+        *outputLine = NULL;
+    }
+
+    ind++;
+
+    if (headers[ind] == NULL) {
+        return CSV_HANDLER__DONE;
+    }
+
+    *outputLine = malloc(sizeof(char) * (strlen(headers[ind]) + 1));
+    strcpy(*outputLine, headers[ind]);
 
     return CSV_HANDLER__OK;
 }
@@ -395,7 +421,7 @@ char csv_handler_transposed_line(char **outputLine)
     }
 
     if (entireInput[0][ind] == NULL) {
-        return CSV_HANDLER__EOF;
+        return CSV_HANDLER__DONE;
     }
 
     *outputLine = (char *) malloc(sizeof(char) * 2);
