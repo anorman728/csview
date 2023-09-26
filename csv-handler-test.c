@@ -28,14 +28,25 @@ int main()
     //printf("%s\n", borderLine);
 
     // Transposed test.
-    csv_handler_initialize_transpose();
+    //csv_handler_initialize_transpose();
 
-    csv_handler_transposed_border_line(&borderLine);
-    printf("%s\n", borderLine);
-    while (csv_handler_transposed_line(&outputLine) == CSV_HANDLER__OK) {
+    //csv_handler_transposed_border_line(&borderLine);
+    //printf("%s\n", borderLine);
+    //while (csv_handler_transposed_line(&outputLine) == CSV_HANDLER__OK) {
+    //    printf("%s\n", outputLine);
+    //}
+    //printf("%s\n", borderLine);
+
+    // Vertical test.
+    csv_handler_vertical_border_line(&borderLine);
+    csv_handler_read_next_line();
+    csv_handler_set_headers_from_line();
+
+    while (csv_handler_read_next_line() == CSV_HANDLER__OK) {
+        printf("%s\n", borderLine);
+        csv_handler_output_vertical_entry(&outputLine);
         printf("%s\n", outputLine);
     }
-    printf("%s\n", borderLine);
 
     free(outputLine);
     free(borderLine);

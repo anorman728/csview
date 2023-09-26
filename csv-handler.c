@@ -237,6 +237,85 @@ char csv_handler_border_line(char **outputLine)
 }
 
 /**
+ * Get *vertical* entry to print to stdout.
+ *
+ * This is not a single line, so behavior is inconsistent.  It's the entirety of
+ * an entry, line breaks and all.
+ *
+ * @param   outputEntry
+ */
+char csv_handler_output_vertical_entry(char **outputEntry)
+{
+    if (*outputEntry != NULL) {
+        free(*outputEntry);
+        *outputEntry = NULL;
+    }
+
+    if (line == NULL) {
+        return CSV_HANDLER__LINE_IS_NULL;
+    }
+
+    if (headers == NULL) {
+        return CSV_HANDLER__HEADERS_NOT_SET;
+    }
+
+    char **parsedLine = NULL;
+    getParsedLine(&parsedLine);
+
+    *outputEntry = malloc(sizeof(char));
+    (*outputEntry)[0] = '\0';
+
+    for (int i = 0; parsedLine[i] != NULL; i++) {
+        *outputEntry = realloc(
+            *outputEntry,
+            strlen(*outputEntry)
+            + strlen(parsedLine[i])
+            + strlen(headers[i])
+            + (i == 0 ? 3 : 4)
+        );
+        // +1 for null term, +1 for line break, +2 for ": "
+        if (i != 0) {
+            strcat(*outputEntry, "\n");
+        }
+        strcat(*outputEntry, headers[i]);
+        strcat(*outputEntry, ": ");
+        strcat(*outputEntry, parsedLine[i]);
+    }
+
+    free_csv_line(parsedLine);
+
+    return CSV_HANDLER__OK;
+}
+
+/**
+ * Get border line for vertical entry.
+ *
+ * @param   outputLine
+ */
+char csv_handler_vertical_border_line(char **outputLine)
+{
+    if (*outputLine != NULL) {
+        free(*outputLine);
+        *outputLine = NULL;
+    }
+
+    *outputLine = malloc(sizeof(char) * width + 1); // Re-use width, so can
+    // change it if want to.
+
+    if (*outputLine == NULL) {
+        return CSV_HANDLER__OUT_OF_MEMORY;
+    }
+
+    for (int i = 0; i < width; i++) {
+        (*outputLine)[i] = '*';
+    }
+
+    (*outputLine)[width] = '\0';
+
+    return CSV_HANDLER__OK;
+}
+
+/**
  * Read the entirety of the file (that's desired) into memory so that can output
  * it as transposed.
  */

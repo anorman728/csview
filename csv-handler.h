@@ -9,8 +9,9 @@
 #define CSV_HANDLER__LINE_IS_NULL       3
 #define CSV_HANDLER__ALREADY_SET        4
 #define CSV_HANDLER__OUT_OF_MEMORY      5
+#define CSV_HANDLER__HEADERS_NOT_SET    6
 
-// Functions for typical output.
+// Functions for typical output and vertical output.
 char csv_handler_read_next_line();
 
 char csv_handler_set_headers_from_line();
@@ -20,6 +21,10 @@ char csv_handler_line(char **wholeLine);
 char csv_handler_output_line(char **outputLine);
 
 char csv_handler_border_line(char **outputLine);
+
+char csv_handler_output_vertical_entry(char **outputEntry);
+
+char csv_handler_vertical_border_line(char **outputLine);
 
 // Functions for transposed output.
 
