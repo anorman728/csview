@@ -398,13 +398,13 @@ char csv_handler_transposed_line(char **outputLine)
         return CSV_HANDLER__EOF;
     }
 
-    *outputLine = (char *) malloc(sizeof(char));
+    *outputLine = (char *) malloc(sizeof(char) * 2);
 
     if (*outputLine == NULL) {
         return CSV_HANDLER__OUT_OF_MEMORY;
     }
 
-    (*outputLine)[0] = '\0'; // Start as empty string.
+    strcpy(*outputLine, "[");
 
     char rc = 0;
     for (int i = 0; entireInput[i] != NULL; i++) {
@@ -413,13 +413,11 @@ char csv_handler_transposed_line(char **outputLine)
         }
 
         if (i == 0) {
-            //*outputLine = realloc(*outputLine, sizeof(char) * (strlen(*outputLine) + 2));
-            //strcat(*outputLine, "|");
-            (*outputLine)[strlen(*outputLine) - 1] = '{';
+            int j = strlen(*outputLine) - 3;
+            for (; (*outputLine)[j] == ' ' && j > 0;j--) {}
+            (*outputLine)[j + 1] = ']';
         }
     }
-
-    (*outputLine)[strlen(*outputLine) - 1] = '}';
 
     ind++;
 
@@ -447,10 +445,9 @@ char csv_handler_transposed_border_line(char **outputLine)
     // Count up the number of fields in the array.
     for (;entireInput[++len] != NULL;){};
 
-    len = (len * (width + 1) - 1);
+    len = (len * (width + 1)) + 1;
     // len is number of elements in first row, so multiply it by field width
-    // (plus one for |).  There is no opening | for transposed, and no closing
-    // |, so need to subtract off one.  No null terminator to match strlen.
+    // (plus one for |), plus one at the end for final +
 
     *outputLine = (char *) malloc(sizeof(char) * (len + 1));
 
@@ -458,10 +455,11 @@ char csv_handler_transposed_border_line(char **outputLine)
         return CSV_HANDLER__OUT_OF_MEMORY;
     }
 
-    for (int i = 0; i < len; i++) {
+    for (int i = 0; i < len - 1; i++) {
         (*outputLine)[i] = '-';
     }
 
+    (*outputLine)[len - 1] = '+';
     (*outputLine)[len] = '\0';
 
     return CSV_HANDLER__OK;
