@@ -75,7 +75,7 @@ char csv_handler_read_next_line()
         line = NULL;
     }
 
-    line = (char *) malloc(sizeof(char));
+    line = malloc(sizeof(char));
 
     if (line == NULL) {
         return CSV_HANDLER__OUT_OF_MEMORY;
@@ -93,7 +93,7 @@ char csv_handler_read_next_line()
             return CSV_HANDLER__DONE;
         }
 
-        line = (char *) realloc(
+        line = realloc(
             line,
             sizeof(char) * (strlen(line) + strlen(buff) + 1) // +1 for null terminator
         );
@@ -284,7 +284,7 @@ char csv_handler_border_line(char **outputLine)
     // Null terminator is *not* included here, because want to match what the
     // result of strlen would be.
 
-    *outputLine = (char *) malloc(sizeof(char) * (lineLen + 1));
+    *outputLine = malloc(sizeof(char) * (lineLen + 1));
 
     if (*outputLine == NULL) {
         return CSV_HANDLER__OUT_OF_MEMORY;
@@ -409,7 +409,7 @@ char csv_handler_initialize_transpose(char *fields)
             return CSV_HANDLER__OUT_OF_MEMORY;
         }
 
-        entireInput[arrLen - 1] = (char **) malloc(sizeof(char **) * (countHeaders + 1));
+        entireInput[arrLen - 1] = malloc(sizeof(char **) * (countHeaders + 1));
 
         if (entireInput[arrLen - 1] == NULL) {
             return CSV_HANDLER__OUT_OF_MEMORY;
@@ -417,7 +417,7 @@ char csv_handler_initialize_transpose(char *fields)
 
         int i = 0;
         for (; parsedLine[i] != NULL; i++) {
-            entireInput[arrLen - 1][i] = (char *) malloc(sizeof(char) * strlen(parsedLine[i]) + 1);
+            entireInput[arrLen - 1][i] = malloc(sizeof(char) * strlen(parsedLine[i]) + 1);
 
             if (entireInput[arrLen - 1] == NULL) {
                 return CSV_HANDLER__OUT_OF_MEMORY;
@@ -431,7 +431,7 @@ char csv_handler_initialize_transpose(char *fields)
         free_csv_line(parsedLine);
     }
 
-    entireInput = (char ***) realloc(entireInput, sizeof(char **) * (arrLen + 1));
+    entireInput = realloc(entireInput, sizeof(char ***) * (arrLen + 1));
 
     if (entireInput == NULL) {
         return CSV_HANDLER__OUT_OF_MEMORY;
@@ -467,7 +467,7 @@ char csv_handler_transposed_line(char **outputLine)
         return CSV_HANDLER__DONE;
     }
 
-    *outputLine = (char *) malloc(sizeof(char) * 2);
+    *outputLine = malloc(sizeof(char) * 2);
 
     if (*outputLine == NULL) {
         return CSV_HANDLER__OUT_OF_MEMORY;
@@ -518,7 +518,7 @@ char csv_handler_transposed_border_line(char **outputLine)
     // len is number of elements in first row, so multiply it by field width
     // (plus one for |), plus one at the end for final +
 
-    *outputLine = (char *) malloc(sizeof(char) * (len + 1));
+    *outputLine = malloc(sizeof(char *) * (len + 1));
 
     if (*outputLine == NULL) {
         return CSV_HANDLER__OUT_OF_MEMORY;
