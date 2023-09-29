@@ -65,6 +65,12 @@ static int condType = COND_TYPE__NONE;
 static int lineNum = 0;
 
 /**
+ * Yes if file has a header, no if either it doesn't have one or it's
+ * already been passed.
+ */
+static char hasHeader = 1;
+
+/**
  * Initialize format with line ranges.
  *
  * @param   lines
@@ -93,6 +99,13 @@ char csvh_line_helper_init_lines(char *lines)
  */
 char csvh_line_helper_should_skip(char *unparsedLine)
 {
+    if (hasHeader) {
+        // If there's a header, always want to get that one, and affect
+        // nothing else.
+        hasHeader = 0;
+        return CSVH_LINE_HELPER__OK;
+    }
+
     lineNum++;
     switch (condType) {
         case COND_TYPE__NONE:
