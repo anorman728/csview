@@ -581,6 +581,10 @@ char csv_handler_set_selected_fields(char *fields)
     if (selectedFields != NULL) {
         return CSV_HANDLER__ALREADY_SET;
     }
+    if (fields[0] == '\0') {
+        // Empty string, so do nothing.
+        return CSV_HANDLER__OK;
+    }
 
     selectedFieldCount = count_fields(fields, delim);
     selectedFields = malloc(sizeof(int) * (getSelectedFieldCount() + 1));
