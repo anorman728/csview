@@ -29,7 +29,7 @@ static char condLine();
 
 static char strIsInt(char *inputStr);
 
-static int *condLineBounds();
+static void condLineBounds(int *bounds);
 
 // END forward declarations.
 
@@ -141,10 +141,10 @@ static char condLine()
             return CSVH_LINE_HELPER__DONE;
         }
 
-        int *bounds = condLineBounds();
+        int bounds[2];
+        condLineBounds(bounds);
         lower = bounds[0];
         upper = bounds[1];
-        free(bounds);
 
         if (lower == 0) {
             return CSVH_LINE_HELPER__INVALID_INPUT;
@@ -180,9 +180,11 @@ static char strIsInt(char *inputStr)
  * Get the next upper and lower bound for line conditions, as an array of
  * two ints.
  *
- * Returns value on heap!
+ * Sets values as zero if input is invalid.
+ *
+ * @param   bounds
  */
-static int *condLineBounds()
+static void condLineBounds(int *bounds)
 {
     // Check if there's a hyphen anywhere in the condition.
     int hyphen = -1;
@@ -203,17 +205,13 @@ static int *condLineBounds()
         upperStr = lowerStr;
     }
 
-    int *bounds = malloc(sizeof(int) * 2);
-
     // Check that the strings are integers.
     if (!strIsInt(lowerStr) || !strIsInt(upperStr)) {
         bounds[0] = 0;
         bounds[1] = 0;
-        return bounds;
+        return;
     }
 
     bounds[0] = atoi(lowerStr);
     bounds[1] = atoi(upperStr);
-
-    return bounds;
 }
