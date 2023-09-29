@@ -11,23 +11,24 @@ int main()
     char *borderLine = NULL;
 
     csv_handler_set_width(17);
+    csv_handler_restrict_by_lines("1-2,4");
 
     // Print header, with border.
-    //csv_handler_read_next_line(); // Not bothering checking RCs right now.
-    //csv_handler_set_headers_from_line(); // Needed for setting fields.
+    csv_handler_read_next_line(); // Not bothering checking RCs right now.
+    csv_handler_set_headers_from_line(); // Needed for setting fields.
     //csv_handler_set_selected_fields("HeadA,HeadC");
-    //csv_handler_border_line(&borderLine);
-    //printf("%s\n", borderLine);
-    //csv_handler_output_line(&outputLine);
-    //printf("%s\n", outputLine);
-    //printf("%s\n", borderLine);
+    csv_handler_border_line(&borderLine);
+    printf("%s\n", borderLine);
+    csv_handler_output_line(&outputLine);
+    printf("%s\n", outputLine);
+    printf("%s\n", borderLine);
 
-    //while (csv_handler_read_next_line() == CSV_HANDLER__OK) {
-    //    csv_handler_output_line(&outputLine);
-    //    printf("%s\n", outputLine);
-    //}
+    while (csv_handler_read_next_line() == CSV_HANDLER__OK) {
+        csv_handler_output_line(&outputLine);
+        printf("%s\n", outputLine);
+    }
 
-    //printf("%s\n", borderLine);
+    printf("%s\n", borderLine);
 
     // Transposed test.
     //csv_handler_initialize_transpose("HeadA,HeadB");

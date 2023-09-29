@@ -3,6 +3,8 @@
 #include <string.h>
 
 #include "csv.h"
+#include "csvh-line-helper.h"
+
 #include "csv-handler.h"
 
 /**
@@ -124,7 +126,19 @@ char csv_handler_read_next_line()
         }
     }
 
-    return CSV_HANDLER__OK;
+    // Determine if should skip, stop, print, or what-have-you.
+    switch (csvh_line_helper_should_skip(line)) {
+        case CSVH_LINE_HELPER__SKIP:
+            return csv_handler_read_next_line();
+        case CSVH_LINE_HELPER__DONE:
+            return CSV_HANDLER__DONE;
+        case CSVH_LINE_HELPER__OK:
+            return CSV_HANDLER__OK;
+        case CSVH_LINE_HELPER__INVALID_INPUT:
+            return CSV_HANDLER__INVALID_INPUT;
+    }
+
+    return CSV_HANDLER__UNKNOWN_ERROR;
 }
 
 /**
@@ -147,7 +161,17 @@ char csv_handler_set_headers_from_line()
 }
 
 /**
- * Get a single header.
+ * Pass on lines restrictions to csvh-line-helper.
+ *
+ * @param   lines
+ */
+char csv_handler_restrict_by_lines(char *lines)
+{
+    return csvh_line_helper_init_lines(lines);
+}
+
+/**
+ * Get a single header to print out (to loop through so can get all headers).
  *
  * @param   outputLine
  */

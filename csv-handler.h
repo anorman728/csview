@@ -12,11 +12,14 @@
 #define CSV_HANDLER__HEADERS_NOT_SET    6
 #define CSV_HANDLER__INVALID_INPUT      7
 #define CSV_HANDLER__HEADER_NOT_FOUND   8
+#define CSV_HANDLER__UNKNOWN_ERROR      9
 
 // Functions for typical output and vertical output.
 char csv_handler_read_next_line();
 
 char csv_handler_set_headers_from_line();
+
+char csv_handler_restrict_by_lines(char *lines);
 
 char csv_handler_output_headers(char **outputLine);
 
