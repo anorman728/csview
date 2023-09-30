@@ -433,7 +433,7 @@ char csv_handler_initialize_transpose(char *fields)
             return CSV_HANDLER__OUT_OF_MEMORY;
         }
 
-        entireInput[arrLen - 1] = malloc(sizeof(char **) * (countHeaders + 1));
+        entireInput[arrLen - 1] = malloc(sizeof(char **) * (getSelectedFieldCount() + 1));
 
         if (entireInput[arrLen - 1] == NULL) {
             return CSV_HANDLER__OUT_OF_MEMORY;
