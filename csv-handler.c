@@ -46,7 +46,8 @@ static int width = 15;
 /**
  * Array of array of strings, terminated by a NULL at the end.  Good grief;
  * this will be annoying.  Holds the entirety of the input file except what is
- * filtered out.  Currently only used for displaying transposed output.
+ * filtered out, and except for the headers.  Currently only used for displaying
+ * transposed output.
  */
 static char ***entireInput = NULL;
 
@@ -59,13 +60,11 @@ static char appendBoxedValue(char **outputLine, char *newValue);
 
 static int getSelectedFieldCount();
 
-static char setFieldsForTransposed(char *fields);
-
 static char *getHeaderFromPosition(int pos);
 
 static char unparseValue(char **value);
 
-static char copyArrayOfStrings(char ***destArray, char ***srcArray);
+static char copyArrayOfStrings(char ***destArray, char ***srcArray, int *specInds);
 
 // END forward declarations.
 
@@ -412,7 +411,7 @@ char csv_handler_vertical_border_line(char **outputLine)
  *
  * @param   fields      Passed fields, if any.
  */
-char csv_handler_initialize_transpose(char *fields)
+char csv_handler_initialize_transpose()
 {
     if (entireInput != NULL) {
         return CSV_HANDLER__ALREADY_SET;
@@ -423,10 +422,6 @@ char csv_handler_initialize_transpose(char *fields)
     char rc = 0;
 
     while (csv_handler_read_next_line() == CSV_HANDLER__OK) {
-        if ((rc = setFieldsForTransposed(fields)) != CSV_HANDLER__OK) {
-            return rc;
-        }
-
         getParsedLine(&parsedLine);
         arrLen++;
         entireInput = realloc(entireInput, sizeof(char ***) * arrLen);
@@ -436,7 +431,7 @@ char csv_handler_initialize_transpose(char *fields)
             return CSV_HANDLER__OUT_OF_MEMORY;
         }
 
-        if ((rc = copyArrayOfStrings(&(entireInput[arrLen - 1]), &parsedLine))) {
+        if ((rc = copyArrayOfStrings(&(entireInput[arrLen - 1]), &parsedLine, NULL))) {
             return rc;
         }
 
@@ -479,15 +474,38 @@ char csv_handler_transposed_line(char **outputLine)
         return CSV_HANDLER__DONE;
     }
 
-    *outputLine = malloc(sizeof(char) * 2);
+    // Not going to bother checking headers (will read zero page if not set)
+    // because it will be removed when have the no-header input option anyway.
 
+    int headerInd = (selectedFields == NULL) ? ind : selectedFields[ind];
+
+    char *headerDum = malloc(sizeof(char) * (strlen(headers[headerInd]) + 3));
+    // Start with opening [, header, ], and null term.
+    // This technically wastes memory because if it's a long header, only part
+    // of what's allocated here will actually be used.  But, the code's slightly
+    // easier this way.
+    strcpy(headerDum, "[");
+    strcat(headerDum, headers[headerInd]);
+    strcat(headerDum, "]");
+
+    *outputLine = malloc(sizeof(char));
     if (*outputLine == NULL) {
         return CSV_HANDLER__OUT_OF_MEMORY;
     }
-
-    strcpy(*outputLine, "[");
+    (*outputLine)[0] = '\0'; // Starting with empty string.
 
     char rc = 0;
+
+    if ((rc = appendBoxedValue(outputLine, headerDum)) != CSV_HANDLER__OK) {
+        return rc;
+    }
+    free(headerDum);
+
+    if ((*outputLine)[width - 1] != ' ') {
+        // If header is too wide to fix in box, set its last character to ].
+        (*outputLine)[width - 1] = ']';
+    }
+
     for (int i = 0; entireInput[i] != NULL; i++) {
         if ((rc = appendBoxedValue(outputLine, entireInput[i][ind])) != CSV_HANDLER__OK) {
             return rc;
@@ -525,10 +543,11 @@ char csv_handler_transposed_border_line(char **outputLine)
 
     // Count up the number of fields in the array.
     for (;entireInput[++len] != NULL;){};
+    len++; // One more for headers.
 
-    len = (len * (width + 1)) + 1;
+    len = (len * (width + 1));
     // len is number of elements in first row, so multiply it by field width
-    // (plus one for |), plus one at the end for final +
+    // (plus one for |).
 
     *outputLine = malloc(sizeof(char *) * (len + 1));
 
@@ -715,30 +734,6 @@ static int getSelectedFieldCount()
 }
 
 /**
- * Set the fields for transposed output.  Helper function for initialization.
- *
- * @param   fields
- */
-static char setFieldsForTransposed(char *fields)
-{
-    if (headers != NULL) {
-        return CSV_HANDLER__OK;
-    }
-
-    char rc;
-
-    if ((rc = csv_handler_set_headers_from_line()) != CSV_HANDLER__OK) {
-        return rc;
-    }
-
-    if ((rc = csv_handler_set_selected_fields(fields)) != CSV_HANDLER__OK) {
-        return rc;
-    }
-
-    return CSV_HANDLER__OK;
-}
-
-/**
  * Get field name from position number.
  *
  * @param   pos
@@ -802,32 +797,39 @@ static char unparseValue(char **value)
  *
  * @param   destArray
  * @param   srcArray
+ * @param   specInds
+ *  "Specify indices" array.  If null, then use all from source array.
  */
-static char copyArrayOfStrings(char ***destArray, char ***srcArray)
+static char copyArrayOfStrings(char ***destArray, char ***srcArray, int *specInds)
 {
     if (*destArray != NULL) {
         return CSV_HANDLER__ALREADY_SET;
     }
 
     *destArray = malloc(sizeof(char **) * (getSelectedFieldCount() + 1));
-    // Don't bother to get the count of the original.
+    // Don't bother to get the count of the source array, at least not right
+    // now.  Anything other than output width is not *currently* a use case.
+    // Don't set this size to module-wide variable to reuse because it's
+    // *hypothetically* possible that it can change if one line has more fields
+    // than another.  (That would break RFC 4180, but, need to be prepared for
+    // that.)  So, we need to calculate it every time.
 
     if (*destArray == NULL) {
         return CSV_HANDLER__OUT_OF_MEMORY;
     }
-    // Don't set this size to constant because it's *hypothetically*
-    // possible that it can change if one line has more fields than another.
-    // (That would break RFC 4180, but, need to be prepared for that.)
 
     int i = 0;
-    for (; (*srcArray)[i] != NULL; i++) {
-        (*destArray)[i] = malloc(sizeof(char) * (strlen((*srcArray)[i]) + 1));
+    char *srcEl = NULL;
+
+    for (;(srcEl = (specInds == NULL) ? (*srcArray)[i] : (*srcArray)[specInds[i]]); i++) {
+        // Expand this out to help understand it better.
+        (*destArray)[i] = malloc(sizeof(char) * (strlen(srcEl) + 1));
 
         if ((*destArray)[i] == NULL) {
             return CSV_HANDLER__OUT_OF_MEMORY;
         }
 
-        strcpy((*destArray)[i], (*srcArray)[i]);
+        strcpy((*destArray)[i], srcEl);
     }
 
     (*destArray)[i] = NULL;
