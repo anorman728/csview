@@ -65,6 +65,8 @@ static char *getHeaderFromPosition(int pos);
 
 static char unparseValue(char **value);
 
+static char copyArrayOfStrings(char ***destArray, char ***srcArray);
+
 // END forward declarations.
 
 /**
@@ -428,29 +430,15 @@ char csv_handler_initialize_transpose(char *fields)
         getParsedLine(&parsedLine);
         arrLen++;
         entireInput = realloc(entireInput, sizeof(char ***) * arrLen);
+        entireInput[arrLen - 1] = NULL;
 
         if (entireInput == NULL) {
             return CSV_HANDLER__OUT_OF_MEMORY;
         }
 
-        entireInput[arrLen - 1] = malloc(sizeof(char **) * (getSelectedFieldCount() + 1));
-
-        if (entireInput[arrLen - 1] == NULL) {
-            return CSV_HANDLER__OUT_OF_MEMORY;
+        if ((rc = copyArrayOfStrings(&(entireInput[arrLen - 1]), &parsedLine))) {
+            return rc;
         }
-
-        int i = 0;
-        for (; parsedLine[i] != NULL; i++) {
-            entireInput[arrLen - 1][i] = malloc(sizeof(char) * strlen(parsedLine[i]) + 1);
-
-            if (entireInput[arrLen - 1] == NULL) {
-                return CSV_HANDLER__OUT_OF_MEMORY;
-            }
-
-            strcpy(entireInput[arrLen - 1][i], parsedLine[i]);
-        }
-
-        entireInput[arrLen - 1][i] = NULL;
 
         free_csv_line(parsedLine);
     }
@@ -804,6 +792,45 @@ static char unparseValue(char **value)
 
     free(*value);
     *value = newValue;
+
+    return CSV_HANDLER__OK;
+}
+
+/**
+ * Copy an array of strings into first passed variable, where source array of
+ * strings is terminated by a NULL pointer.
+ *
+ * @param   destArray
+ * @param   srcArray
+ */
+static char copyArrayOfStrings(char ***destArray, char ***srcArray)
+{
+    if (*destArray != NULL) {
+        return CSV_HANDLER__ALREADY_SET;
+    }
+
+    *destArray = malloc(sizeof(char **) * (getSelectedFieldCount() + 1));
+    // Don't bother to get the count of the original.
+
+    if (*destArray == NULL) {
+        return CSV_HANDLER__OUT_OF_MEMORY;
+    }
+    // Don't set this size to constant because it's *hypothetically*
+    // possible that it can change if one line has more fields than another.
+    // (That would break RFC 4180, but, need to be prepared for that.)
+
+    int i = 0;
+    for (; (*srcArray)[i] != NULL; i++) {
+        (*destArray)[i] = malloc(sizeof(char) * (strlen((*srcArray)[i]) + 1));
+
+        if ((*destArray)[i] == NULL) {
+            return CSV_HANDLER__OUT_OF_MEMORY;
+        }
+
+        strcpy((*destArray)[i], (*srcArray)[i]);
+    }
+
+    (*destArray)[i] = NULL;
 
     return CSV_HANDLER__OK;
 }
