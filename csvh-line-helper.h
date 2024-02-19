@@ -7,8 +7,11 @@
 #define CSVH_LINE_HELPER__SKIP          1
 #define CSVH_LINE_HELPER__DONE          2
 #define CSVH_LINE_HELPER__INVALID_INPUT 3
+#define CSVH_LINE_HELPER__UNKNOWN_ERROR 4
 
 char csvh_line_helper_init_lines(char *lines);
+
+char csvh_line_helper_init_ranges(int critIndInput, char *ranges);
 
 char csvh_line_helper_should_skip(char *unparsedLine);
 
