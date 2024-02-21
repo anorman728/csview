@@ -1,7 +1,7 @@
-HeadA,HeadB,HeadC
+HeadA,HeadB,HeadC,Range
 abc123,"def
-456",ghi789
-"jkl,012",mno345,pqr678
-blah,blah,blah
-blas,blas,blas
-meh,meh,meh
+456",ghi789,5
+"jkl,012",mno345,pqr678,6
+blah,blah,blah,7
+blas,blas,blas,10
+meh,meh,meh,9

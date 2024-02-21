@@ -21,6 +21,8 @@ char csv_handler_set_headers_from_line();
 
 char csv_handler_restrict_by_lines(char *lines);
 
+char csv_handler_restrict_by_ranges(char *critHeader, char *ranges);
+
 char csv_handler_output_headers(char **outputLine);
 
 char csv_handler_raw_line(char **wholeLine);

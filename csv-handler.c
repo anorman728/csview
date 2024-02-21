@@ -172,6 +172,19 @@ char csv_handler_restrict_by_lines(char *lines)
 }
 
 /**
+ * Pass on ranges restrictions to csvh-line-helper.
+ *
+ * @param   critHeader
+ * @param   ranges
+ */
+char csv_handler_restrict_by_ranges(char *critHeader, char *ranges)
+{
+    int critInd = -1;
+    for (;strcmp(critHeader, headers[++critInd]) != 0 && headers[critInd] != NULL;) {}
+    return csvh_line_helper_init_ranges(critInd, ranges);
+}
+
+/**
  * Get a single header to print out (to loop through so can get all headers).
  *
  * @param   outputLine
