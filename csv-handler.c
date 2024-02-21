@@ -523,12 +523,6 @@ char csv_handler_transposed_line(char **outputLine)
         if ((rc = appendBoxedValue(outputLine, entireInput[i][ind])) != CSV_HANDLER__OK) {
             return rc;
         }
-
-        if (i == 0) {
-            int j = strlen(*outputLine) - 3;
-            for (; (*outputLine)[j] == ' ' && j > 0;j--) {}
-            (*outputLine)[j + 1] = ']';
-        }
     }
 
     ind++;
