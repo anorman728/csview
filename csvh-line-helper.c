@@ -27,6 +27,8 @@
 #define COND_TYPE__LINE         2
 // Value range.
 #define COND_TYPE__RANGE        3
+// Value equals
+#define COND_TYPE__EQUALS       4
 
 // END output condition types.
 
@@ -34,7 +36,9 @@
 
 static char condLine();
 
-static char condRange();
+static char condRange(char **parsedLine);
+
+static char condEquals(char **parsedLine);
 
 static char strIsInt(char *inputStr);
 
@@ -91,7 +95,7 @@ static int lineNum = 0;
 static char hasHeader = 1;
 
 /**
- * Initialize format with line ranges.
+ * Initialize with line ranges restrictions.
  *
  * @param   lines
  */
@@ -107,7 +111,7 @@ char csvh_line_helper_init_lines(char *lines)
 }
 
 /**
- * Initialize format with value ranges.
+ * Initialize with value ranges restrictions.
  *
  * "ranges" is string like "3-4,6,9-13".  Can also be rational numbers.
  *
@@ -121,6 +125,29 @@ char csvh_line_helper_init_ranges(int critIndInput, char *ranges)
     critInd = critIndInput;
 
     conds = parse_csv(ranges, ',');
+    if (conds == NULL) {
+        return CSVH_LINE_HELPER__INVALID_INPUT;
+    }
+
+    return CSVH_LINE_HELPER__OK;
+}
+
+/**
+ * Initialize with value equals restrictions.
+ *
+ * "equals" is string like "bob,sue,abdul alhazred".  Must equal exactly to
+ * match.
+ *
+ * @param   critIndInput
+ * @param   ranges
+ */
+char csvh_line_helper_init_equals(int critIndInput, char *equals)
+{
+    condType = COND_TYPE__EQUALS;
+
+    critInd = critIndInput;
+
+    conds = parse_csv(equals, ',');
     if (conds == NULL) {
         return CSVH_LINE_HELPER__INVALID_INPUT;
     }
@@ -162,15 +189,16 @@ char csvh_line_helper_should_skip(char *unparsedLine)
 
     // Now parse the line, because it'll be used in the other condition checks.
     char **parsedLine = parse_csv(unparsedLine, ',');
-    char res = CSVH_LINE_HELPER__UNKNOWN_ERROR;
-    // TODO: Might not want to return "unknown error", because it's pretty
-    // clear what the error is.  This is an unknown type.  "Internal error"
-    // might be better, because if this happens, then that means it's
-    // almost certainly an error from inside this module.
+    char res = CSVH_LINE_HELPER__INTERNAL_ERROR;
+    // If return this, it means that there's some kind of foreign condition
+    // type that's defined but never used.
 
     switch (condType) {
         case COND_TYPE__RANGE:
             res = condRange(parsedLine);
+            break;
+        case COND_TYPE__EQUALS:
+            res = condEquals(parsedLine);
             break;
     }
 
@@ -301,6 +329,8 @@ static char condRange(char **parsedLine)
 
     char *val = parsedLine[critInd];
     char *condDum;
+    // Need to make a dummy string because going to mutate it later, and don't
+    // want to change the original.
 
     char rc;
     for (int i = 0; conds[i] != NULL; i++) {
@@ -327,7 +357,6 @@ static char condRange(char **parsedLine)
  */
 static char condRangeCompare(char *val, char *range)
 {
-    //printf("val: %s, range: %s\n", val, range);//dmz1
     int isRange = stringHasChar(range, '-');
     char isDouble = stringHasChar(range, '.') || stringHasChar(val, '.');
     char *eptr; // Seems to be needed to convert string to double.  Won't
@@ -350,17 +379,13 @@ static char condRangeCompare(char *val, char *range)
             double valDbl = strtod(val, &eptr);
             double lowerDbl = strtod(lowerStr, &eptr);
 
-            //printf("valDbl: %lf\n", valDbl);//dmz1
-            //printf("lowerDbl: %lf\n", lowerDbl);//dmz1
             if (valDbl < lowerDbl) {
-                //printf("catch1\n");//dmz1
                 return CSVH_LINE_HELPER__SKIP;
             }
 
             double upperDbl = strtod(upperStr, &eptr);
 
             if (valDbl > upperDbl) {
-                //printf("catch2\n");//dmz1
                 return CSVH_LINE_HELPER__SKIP;
             }
         } else {
@@ -398,6 +423,28 @@ static char condRangeCompare(char *val, char *range)
     }
 
     return CSVH_LINE_HELPER__OK;
+}
+
+/**
+ * Handle equals condition.
+ *
+ *
+ * @param   parsedLine
+ */
+static char condEquals(char **parsedLine)
+{
+    // Loop through each condition and see if it applies.  Return OK on the
+    // *first* one where it's true.
+
+    char *val = parsedLine[critInd];
+
+    for (int i = 0; conds[i] != NULL; i++) {
+        if (strcmp(conds[i],val) == 0) {
+            return CSVH_LINE_HELPER__OK;
+        }
+    }
+
+    return CSVH_LINE_HELPER__SKIP;
 }
 
 /**

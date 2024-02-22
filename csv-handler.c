@@ -66,6 +66,8 @@ static char unparseValue(char **value);
 
 static char copyArrayOfStrings(char ***destArray, char ***srcArray, int *specInds);
 
+static int getHeaderIndexFromString(char *critHeader);
+
 // END forward declarations.
 
 /**
@@ -179,9 +181,30 @@ char csv_handler_restrict_by_lines(char *lines)
  */
 char csv_handler_restrict_by_ranges(char *critHeader, char *ranges)
 {
-    int critInd = -1;
-    for (;strcmp(critHeader, headers[++critInd]) != 0 && headers[critInd] != NULL;) {}
+    int critInd = getHeaderIndexFromString(critHeader);
+
+    if (critInd == -1) {
+        return CSV_HANDLER__HEADER_NOT_FOUND;
+    }
+
     return csvh_line_helper_init_ranges(critInd, ranges);
+}
+
+/**
+ * Pass on equals restrictions to csvh-line-helper.
+ *
+ * @param   critHeader
+ * @param   equals
+ */
+char csv_handler_restrict_by_equals(char *critHeader, char *equals)
+{
+    int critInd = getHeaderIndexFromString(critHeader);
+
+    if (critInd == -1) {
+        return CSV_HANDLER__HEADER_NOT_FOUND;
+    }
+
+    return csvh_line_helper_init_equals(critInd, equals);
 }
 
 /**
@@ -842,4 +865,24 @@ static char copyArrayOfStrings(char ***destArray, char ***srcArray, int *specInd
     (*destArray)[i] = NULL;
 
     return CSV_HANDLER__OK;
+}
+
+/**
+ * Get index of header from matching string.
+ *
+ * Return -1 in case of no match.
+ *
+ * @param   critHeader
+ */
+static int getHeaderIndexFromString(char *critHeader)
+{
+    int critInd = -1;
+    for (;strcmp(critHeader, headers[++critInd]) != 0 && headers[critInd] != NULL;) {}
+
+    if (headers[critInd] == NULL) {
+        // Not found.
+        return -1;
+    }
+
+    return critInd;
 }

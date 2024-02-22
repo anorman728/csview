@@ -20,7 +20,7 @@ int main()
     csv_handler_read_next_line(); // Not bothering checking RCs right now.
     csv_handler_set_headers_from_line(); // Needed for setting fields.
     // Always do above two things *first*.
-    csv_handler_set_selected_fields("HeadA,HeadC");
+    //csv_handler_set_selected_fields("HeadA,HeadC");
     csv_handler_border_line(&borderLine);
     printf("%s\n", borderLine);
     csv_handler_output_line(&outputLine);
@@ -32,7 +32,8 @@ int main()
     // headers, but since other restrictions can't, putting this here for
     // consistency.
 
-    csv_handler_restrict_by_ranges("Range", "5,7-9");
+    //csv_handler_restrict_by_ranges("Range", "5,7-9");
+    csv_handler_restrict_by_equals("HeadC", "blah,blas");
 
     while (csv_handler_read_next_line() == CSV_HANDLER__OK) {
         csv_handler_output_line(&outputLine);
@@ -44,8 +45,9 @@ int main()
     // Transposed test.
     //csv_handler_read_next_line();
     //csv_handler_set_headers_from_line();
-    //csv_handler_set_selected_fields("HeadB,HeadC");
+    //csv_handler_set_selected_fields("HeadA,HeadC,Range");
     //csv_handler_restrict_by_lines("2-3,5");
+    ////csv_handler_restrict_by_ranges("Range", "5,7-9");
     //csv_handler_initialize_transpose();
 
     //csv_handler_transposed_border_line(&borderLine);

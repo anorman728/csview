@@ -23,6 +23,8 @@ char csv_handler_restrict_by_lines(char *lines);
 
 char csv_handler_restrict_by_ranges(char *critHeader, char *ranges);
 
+char csv_handler_restrict_by_equals(char *critHeader, char *equals);
+
 char csv_handler_output_headers(char **outputLine);
 
 char csv_handler_raw_line(char **wholeLine);
