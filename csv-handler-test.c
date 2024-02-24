@@ -27,13 +27,13 @@ int main()
     printf("%s\n", outputLine);
     printf("%s\n", borderLine);
 
-    //csv_handler_restrict_by_lines("2-3,5");
+    csv_handler_restrict_by_lines("2-3,5");
     // This specific restriction can technically be done before getting the
     // headers, but since other restrictions can't, putting this here for
     // consistency.
 
     //csv_handler_restrict_by_ranges("Range", "5,7-9");
-    csv_handler_restrict_by_equals("HeadC", "blah,blas");
+    //csv_handler_restrict_by_equals("HeadC", "blah,blas");
 
     while (csv_handler_read_next_line() == CSV_HANDLER__OK) {
         csv_handler_output_line(&outputLine);

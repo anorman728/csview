@@ -671,6 +671,7 @@ char csv_handler_close()
     line = NULL;
     free(selectedFields);
     selectedFields = NULL;
+    csvh_line_helper_close();
 
     return CSV_HANDLER__OK;
 }
