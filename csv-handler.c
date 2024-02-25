@@ -85,6 +85,26 @@ static int countDigits(int num);
 // END forward declarations.
 
 /**
+ * Set value for hasHeaders.
+ *
+ * @param   hasHeadersIn
+ */
+void csv_handler_set_has_headers(char hasHeadersIn)
+{
+    hasHeaders = hasHeadersIn;
+}
+
+/**
+ * Set value for delim.
+ *
+ * @param   delimIn
+ */
+void csv_handler_set_delim(char delimIn)
+{
+    delim = delimIn;
+}
+
+/**
  * Read next line into memory.
  */
 char csv_handler_read_next_line()
@@ -196,16 +216,6 @@ char csv_handler_set_headers_from_line()
     // headers.
 
     return CSV_HANDLER__OK;
-}
-
-/**
- * Set value for hasHeaders.
- *
- * @param   hasHeadersIn
- */
-void csv_handler_set_has_headers(char hasHeadersIn)
-{
-    hasHeaders = hasHeadersIn;
 }
 
 /**
@@ -668,9 +678,9 @@ char csv_handler_set_selected_fields(char *fields)
         return CSV_HANDLER__OK;
     }
 
-    selectedFieldCount = count_fields(fields, delim);
+    selectedFieldCount = count_fields(fields, ','); // Always use comma for this.
     selectedFields = malloc(sizeof(int) * (getSelectedFieldCount() + 1));
-    char **fieldArr = parse_csv(fields, delim);
+    char **fieldArr = parse_csv(fields, ','); // Always comma for this.
 
     if (fieldArr == NULL) {
         return CSV_HANDLER__INVALID_INPUT;

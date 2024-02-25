@@ -15,11 +15,13 @@
 #define CSV_HANDLER__UNKNOWN_ERROR      9
 
 // Functions for typical output and vertical output.
+void csv_handler_set_has_headers(char hasHeadersIn);
+
+void csv_handler_set_delim(char delimIn);
+
 char csv_handler_read_next_line();
 
 char csv_handler_set_headers_from_line();
-
-void csv_handler_set_has_headers(char hasHeadersIn);
 
 char csv_handler_restrict_by_lines(char *lines);
 
