@@ -169,8 +169,10 @@ char csvh_line_helper_init_equals(int critIndInput, char *equals)
 char csvh_line_helper_should_skip(char *unparsedLine)
 {
     if (hasHeader) {
-        // If there's a header, always want to get that one, and affect
-        // nothing else.
+        // Always want to get the header.
+        // Note that if there's no actual header, csv-handler.c creates one and
+        // provides it.  The variable name is a little misleading, because it's
+        // basically always true for the first line.
         hasHeader = 0;
         return CSVH_LINE_HELPER__OK;
     }
