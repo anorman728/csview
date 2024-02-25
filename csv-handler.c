@@ -316,6 +316,11 @@ char csv_handler_raw_line(char **wholeLine)
     strcpy(*wholeLine, "");
 
     char rc = 0;
+
+    char delimStr[] = "r";
+    delimStr[0] = delim;
+    // This is an annoying way of concatenating a single char.
+
     for (int i = 0; parsedLine[i] != NULL; i++) {
         if ((rc = unparseValue(&(parsedLine[i]))) != CSV_HANDLER__OK) {
             return rc;
@@ -328,7 +333,7 @@ char csv_handler_raw_line(char **wholeLine)
             return CSV_HANDLER__OUT_OF_MEMORY;
         }
         strcat(*wholeLine, parsedLine[i]);
-        strcat(*wholeLine, ",");
+        strcat(*wholeLine, delimStr);
     }
 
     (*wholeLine)[strlen(*wholeLine) - 1] = '\0';  // Don't resize.
@@ -844,7 +849,7 @@ static char unparseValue(char **value)
     char dontParse = 1;
     char doubleQuotes = 0;
     for (long int i = 0; (*value)[i]; i++) {
-        if ((*value)[i] == ',' || (*value)[i] == '\n') {
+        if ((*value)[i] == delim || (*value)[i] == '\n') {
             dontParse = 0;
         } else if ((*value)[i] == '"') {
             dontParse = 0;
