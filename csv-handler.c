@@ -18,9 +18,19 @@ static char delim = ',';
 static char *line = NULL;
 
 /**
+ * Temporary line to hold in memory until called.
+ */
+static char *lineBuff = NULL;
+
+/**
  * Headers as array of strings.
  */
 static char **headers = NULL;
+
+/**
+ * Source file has text headers.  Default to true.
+ */
+static char hasHeaders = 1;
 
 /**
  * The fields to be included in output.  Terminated by -1.  If NULL, then
@@ -68,6 +78,10 @@ static char copyArrayOfStrings(char ***destArray, char ***srcArray, int *specInd
 
 static int getHeaderIndexFromString(char *critHeader);
 
+static char setHeadersAsNumbers();
+
+static int countDigits(int num);
+
 // END forward declarations.
 
 /**
@@ -80,53 +94,74 @@ char csv_handler_read_next_line()
         line = NULL;
     }
 
-    line = malloc(sizeof(char));
+    if (lineBuff != NULL) {
+        // Have a line in memory being held, so just switch around the pointers.
+        line = lineBuff;
+        lineBuff = NULL;
 
-    if (line == NULL) {
-        return CSV_HANDLER__OUT_OF_MEMORY;
-    }
+    } else {
 
-    line[0] = '\0'; // Empty string for now because we don't know how long it
-    // will be.
-
-    int buffsize = 255;
-    char buff[buffsize];
-    while (1) {
-        if (fgets(buff, buffsize, stdin) == NULL) {
-            // Note that this should happen *after* the final line has already
-            // been read into memory.
-            return CSV_HANDLER__DONE;
-        }
-
-        line = realloc(
-            line,
-            sizeof(char) * (strlen(line) + strlen(buff) + 1) // +1 for null terminator
-        );
+        // Might be good to abstract this to a different function?
+        line = malloc(sizeof(char));
 
         if (line == NULL) {
             return CSV_HANDLER__OUT_OF_MEMORY;
         }
 
-        strcat(line, buff);
+        line[0] = '\0'; // Empty string for now because we don't know how long it
+        // will be.
 
-        size_t lst = strlen(line) - 1;
-        if (line[lst] == '\n' && ((countHeaders = count_fields(line, delim)) != -1)) {
-            // If count_fields is -1, then that means the line is not parseable
-            // as a CSV line, which probably means that the file has a field
-            // with a line break in it, meaning we have to include both of the
-            // *file*'s lines as part of the same logical CSV line.  Example:
+        int buffsize = 255;
+        char buff[buffsize];
+        while (1) {
+            if (fgets(buff, buffsize, stdin) == NULL) {
+                // Note that this should happen *after* the final line has already
+                // been read into memory.
+                return CSV_HANDLER__DONE;
+            }
 
-            // field one,field two,"field with
-            // line break", field four
+            line = realloc(
+                line,
+                sizeof(char) * (strlen(line) + strlen(buff) + 1) // +1 for null terminator
+            );
 
-            // From the CSV perspective, this is one line, but if we don't check
-            // that the line we just found is parseable when we reach the first
-            // newline, we'll get an unparseable string and csv.c will return
-            // null.
+            if (line == NULL) {
+                return CSV_HANDLER__OUT_OF_MEMORY;
+            }
 
-            line[lst] = '\0'; // Removing newline, but not reallocing.
-            break;
+            strcat(line, buff);
+
+            size_t lst = strlen(line) - 1;
+            if (line[lst] == '\n' && ((countHeaders = count_fields(line, delim)) != -1)) {
+                // If count_fields is -1, then that means the line is not parseable
+                // as a CSV line, which probably means that the file has a field
+                // with a line break in it, meaning we have to include both of the
+                // *file*'s lines as part of the same logical CSV line.  Example:
+
+                // field one,field two,"field with
+                // line break", field four
+
+                // From the CSV perspective, this is one line, but if we don't check
+                // that the line we just found is parseable when we reach the first
+                // newline, we'll get an unparseable string and csv.c will return
+                // null.
+
+                line[lst] = '\0'; // Removing newline, but not reallocing.
+                break;
+            }
         }
+    }
+
+    if (!hasHeaders) {
+        // Take the line that was just found and stash it away, because we're
+        // going to print out the numerical headers first.
+        lineBuff = line;
+        char rc;
+        if ((rc = setHeadersAsNumbers()) != CSV_HANDLER__OK) {
+            return rc;
+        }
+        hasHeaders = 1; // Now have headers.  (Basically just don't want to come
+        // back here.)
     }
 
     // Determine if should skip, stop, print, or what-have-you.
@@ -161,6 +196,16 @@ char csv_handler_set_headers_from_line()
     // headers.
 
     return CSV_HANDLER__OK;
+}
+
+/**
+ * Set value for hasHeaders.
+ *
+ * @param   hasHeadersIn
+ */
+void csv_handler_set_has_headers(char hasHeadersIn)
+{
+    hasHeaders = hasHeadersIn;
 }
 
 /**
@@ -886,4 +931,70 @@ static int getHeaderIndexFromString(char *critHeader)
     }
 
     return critInd;
+}
+
+/**
+ * Set the headers as numbers, using information from the first line from stdin.
+ *
+ * This should only be called from csv_handler_read_next_line when
+ * hasHeaders = 0!
+ */
+static char setHeadersAsNumbers()
+{
+    if (lineBuff == NULL) {
+        return CSV_HANDLER__LINE_IS_NULL;
+    }
+
+    if (headers != NULL) {
+        return CSV_HANDLER__ALREADY_SET;
+    }
+
+    int lineLen = 0;
+    char **parsedLine = parse_csv(lineBuff, delim);
+    // Not using getParsedLine because dont' want to filter anything out right
+    // now.
+    for (;parsedLine[++lineLen] != NULL;) {}
+    free_csv_line(parsedLine);
+
+    char *headerLine = malloc(sizeof(char));
+    headerLine[0] = '\0';
+    int newDigitLen;
+    char *newDigitStrDum;
+
+    char delimStr[2];
+    delimStr[0] = delim;
+    delimStr[1] = '\0';
+
+    for (int i = 1; i < lineLen + 1; i++) {
+        newDigitLen = countDigits(i);
+        newDigitStrDum = malloc(sizeof(char) * (newDigitLen + 1));
+        headerLine = realloc(headerLine, strlen(headerLine) + newDigitLen + 2);
+        sprintf(newDigitStrDum, "%d", i);
+        strcat(headerLine, newDigitStrDum);
+        strcat(headerLine, delimStr);
+        free(newDigitStrDum);
+    }
+
+    headerLine[strlen(headerLine) - 1] = '\0'; // Remove last comma.
+
+    line = headerLine;
+    headerLine = NULL;
+
+    return CSV_HANDLER__OK;
+}
+
+/**
+ * Count the number of digits in an integer.
+ *
+ * @param   num
+ */
+static int countDigits(int num)
+{
+    int cnt = 1;
+    while (num > 10) {
+        num/=10;
+        cnt++;
+    }
+
+    return cnt;
 }

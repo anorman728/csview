@@ -212,8 +212,10 @@ char csvh_line_helper_should_skip(char *unparsedLine)
  */
 char csvh_line_helper_close()
 {
-    free_csv_line(conds);
-    conds = NULL;
+    if (conds != NULL) {
+        free_csv_line(conds);
+        conds = NULL;
+    }
 
     return CSVH_LINE_HELPER__OK;
 }

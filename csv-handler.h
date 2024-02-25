@@ -19,6 +19,8 @@ char csv_handler_read_next_line();
 
 char csv_handler_set_headers_from_line();
 
+void csv_handler_set_has_headers(char hasHeadersIn);
+
 char csv_handler_restrict_by_lines(char *lines);
 
 char csv_handler_restrict_by_ranges(char *critHeader, char *ranges);
