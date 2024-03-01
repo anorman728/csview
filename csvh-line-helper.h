@@ -16,6 +16,8 @@ char csvh_line_helper_init_ranges(int critIndInput, char *ranges);
 
 char csvh_line_helper_init_equals(int critIndInput, char *equals);
 
+int csvh_line_helper_get_line_num();
+
 char csvh_line_helper_should_skip(char *unparsedLine);
 
 char csvh_line_helper_close();

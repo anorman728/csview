@@ -47,6 +47,8 @@ char csv_handler_initialize_transpose();
 
 char csv_handler_transposed_line(char **outputLine);
 
+char csv_handler_transposed_number_line(char **outputLine);
+
 char csv_handler_transposed_border_line(char **outputLine);
 
 // Other functions.

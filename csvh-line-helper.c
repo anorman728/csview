@@ -156,6 +156,14 @@ char csvh_line_helper_init_equals(int critIndInput, char *equals)
 }
 
 /**
+ * Get the current line number.
+ */
+int csvh_line_helper_get_line_num()
+{
+    return lineNum;
+}
+
+/**
  * Determine if should skip the current line.  Returns "OK" (don't skip),
  * "Skip" (skip) and "Done" (nothing left to print), according to constants
  * defined in csvh-line-helper.h.

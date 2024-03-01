@@ -61,12 +61,18 @@ static int width = 15;
  */
 static char ***entireInput = NULL;
 
+/**
+ * Array of integers of line numbers from the source file to display.  Only
+ * used for transposed output.
+ */
+static int *lineNums = NULL;
+
 
 // START forward declarations for static functions.
 
 static char getParsedLine(char ***parsedLine);
 
-static char appendBoxedValue(char **outputLine, char *newValue);
+static char appendBoxedValue(char **outputLine, char *newValue, char useBrace);
 
 static int getSelectedFieldCount();
 
@@ -317,7 +323,7 @@ char csv_handler_raw_line(char **wholeLine)
 
     char rc = 0;
 
-    char delimStr[] = "r";
+    char delimStr[] = " ";
     delimStr[0] = delim;
     // This is an annoying way of concatenating a single char.
 
@@ -369,9 +375,10 @@ char csv_handler_output_line(char **outputLine)
     (*outputLine)[0] = '|'; // Opening brace.
     (*outputLine)[1] = '\0';
 
+    // Add content.
     char rc = 0;
     for (int i = 0; parsedLine[i] != NULL; i++) {
-        if ((rc = appendBoxedValue(outputLine, parsedLine[i])) != CSV_HANDLER__OK) {
+        if ((rc = appendBoxedValue(outputLine, parsedLine[i], 1)) != CSV_HANDLER__OK) {
             return rc;
         }
     }
@@ -517,7 +524,13 @@ char csv_handler_initialize_transpose()
     int arrLen = 0;
     char rc = 0;
 
+    // Create lineNums array.  Use zero as terminator.
+    lineNums = malloc(sizeof(int));
+    lineNums[0] = 0;
+    int lineNumsCount = 1;
+
     while (csv_handler_read_next_line() == CSV_HANDLER__OK) {
+        // Append entireInput array.
         getParsedLine(&parsedLine);
         arrLen++;
         entireInput = realloc(entireInput, sizeof(char ***) * arrLen);
@@ -532,6 +545,16 @@ char csv_handler_initialize_transpose()
         }
 
         free_csv_line(parsedLine);
+
+        // Append lineNums array.
+        lineNums = realloc(lineNums, sizeof(int) * ++lineNumsCount);
+
+        if (lineNums == NULL) {
+            return CSV_HANDLER__OUT_OF_MEMORY;
+        }
+
+        lineNums[lineNumsCount - 2] = csvh_line_helper_get_line_num();
+        lineNums[lineNumsCount - 1] = 0;
     }
 
     entireInput = realloc(entireInput, sizeof(char ***) * (arrLen + 1));
@@ -570,9 +593,6 @@ char csv_handler_transposed_line(char **outputLine)
         return CSV_HANDLER__DONE;
     }
 
-    // Not going to bother checking headers (will read zero page if not set)
-    // because it will be removed when have the no-header input option anyway.
-
     int headerInd = (selectedFields == NULL) ? ind : selectedFields[ind];
 
     char *headerDum = malloc(sizeof(char) * (strlen(headers[headerInd]) + 3));
@@ -592,7 +612,7 @@ char csv_handler_transposed_line(char **outputLine)
 
     char rc = 0;
 
-    if ((rc = appendBoxedValue(outputLine, headerDum)) != CSV_HANDLER__OK) {
+    if ((rc = appendBoxedValue(outputLine, headerDum, 1)) != CSV_HANDLER__OK) {
         return rc;
     }
     free(headerDum);
@@ -603,12 +623,62 @@ char csv_handler_transposed_line(char **outputLine)
     }
 
     for (int i = 0; entireInput[i] != NULL; i++) {
-        if ((rc = appendBoxedValue(outputLine, entireInput[i][ind])) != CSV_HANDLER__OK) {
+        if ((rc = appendBoxedValue(outputLine, entireInput[i][ind], 1)) != CSV_HANDLER__OK) {
             return rc;
         }
     }
 
     ind++;
+
+    return CSV_HANDLER__OK;
+}
+
+/**
+   Get transposed line of line numbers to stdout.
+ */
+char csv_handler_transposed_number_line(char **outputLine)
+{
+    // Similar to csv_handler_transposed_line, but just using lineNums.
+
+    if (*outputLine != NULL) {
+        free (*outputLine);
+        *outputLine = NULL;
+    }
+
+    if (lineNums == NULL) {
+        return CSV_HANDLER__LINE_IS_NULL;
+    }
+
+    *outputLine = malloc(sizeof(char));
+    if (*outputLine == NULL) {
+        return CSV_HANDLER__OUT_OF_MEMORY;
+    }
+
+    // First part is just empty space and sadness.
+    char rc;
+    (*outputLine)[0] = '\0';
+    if ((rc = appendBoxedValue(outputLine, "", 0)) != CSV_HANDLER__OK) {
+        return rc;
+    }
+
+    int i = 0;
+    char *numStrDum;
+    int numStrLen;
+
+    while (lineNums[i] != 0) {
+        numStrLen = countDigits(lineNums[i]);
+        numStrDum = malloc(sizeof(char) * (numStrLen + 1));
+        if (numStrDum == NULL) {
+            return CSV_HANDLER__OUT_OF_MEMORY;
+        }
+        sprintf(numStrDum, "%d", lineNums[i]);
+
+        if ((rc = appendBoxedValue(outputLine, numStrDum, 0)) != CSV_HANDLER__OK) {
+            return rc;
+        }
+        free(numStrDum);
+        i++;
+    }
 
     return CSV_HANDLER__OK;
 }
@@ -778,8 +848,10 @@ static char getParsedLine(char ***parsedLine)
  * Append string with new boxed value for printing to output.
  *
  * @param   outputLine
+ * @param   newValue
+ * @param   useBrace
  */
-static char appendBoxedValue(char **outputLine, char *newValue)
+static char appendBoxedValue(char **outputLine, char *newValue, char useBrace)
 {
     int initialLen = strlen(*outputLine);
     *outputLine = realloc(*outputLine, sizeof(char) * (initialLen + 2 + width));
@@ -810,7 +882,7 @@ static char appendBoxedValue(char **outputLine, char *newValue)
         (*outputLine)[initialLen + contentLength + j] = ' ';
     }
 
-    (*outputLine)[initialLen + width] = '|'; // Next brace.
+    (*outputLine)[initialLen + width] = useBrace ? '|' : ' '; // Next brace.
     (*outputLine)[initialLen + width + 1] = '\0'; // Putting back in the null terminator.
 
     return CSV_HANDLER__OK;
@@ -983,7 +1055,9 @@ static char setHeadersAsNumbers()
     for (int i = 1; i < lineLen + 1; i++) {
         newDigitLen = countDigits(i);
         newDigitStrDum = malloc(sizeof(char) * (newDigitLen + 1));
+        // TODO: Return rc if null! //mk12
         headerLine = realloc(headerLine, strlen(headerLine) + newDigitLen + 2);
+        // TODO: Return rc if null! //mk12
         sprintf(newDigitStrDum, "%d", i);
         strcat(headerLine, newDigitStrDum);
         strcat(headerLine, delimStr);
