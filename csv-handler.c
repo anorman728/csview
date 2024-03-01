@@ -1114,9 +1114,13 @@ static char setHeadersAsNumbers()
     for (int i = 1; i < lineLen + 1; i++) {
         newDigitLen = countDigits(i);
         newDigitStrDum = malloc(sizeof(char) * (newDigitLen + 1));
-        // TODO: Return rc if null! //mk12
+        if (newDigitStrDum == NULL) {
+            return CSV_HANDLER__OUT_OF_MEMORY;
+        }
         headerLine = realloc(headerLine, strlen(headerLine) + newDigitLen + 2);
-        // TODO: Return rc if null! //mk12
+        if (headerLine == NULL) {
+            return CSV_HANDLER__OUT_OF_MEMORY;
+        }
         sprintf(newDigitStrDum, "%d", i);
         strcat(headerLine, newDigitStrDum);
         strcat(headerLine, delimStr);
