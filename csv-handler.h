@@ -35,6 +35,10 @@ char csv_handler_raw_line(char **wholeLine);
 
 char csv_handler_output_line(char **outputLine);
 
+char csv_handler_output_line_number(char **outputString);
+
+char csv_handler_output_line_padding(char **outputString);
+
 char csv_handler_border_line(char **outputLine);
 
 char csv_handler_output_vertical_entry(char **outputEntry);

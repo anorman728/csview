@@ -18,6 +18,11 @@ static char delim = ',';
 static char *line = NULL;
 
 /**
+ * Width used to display line numbers.
+ */
+static int linePad = 3;
+
+/**
  * Temporary line to hold in memory until called.
  */
 static char *lineBuff = NULL;
@@ -384,6 +389,60 @@ char csv_handler_output_line(char **outputLine)
     }
 
     free_csv_line(parsedLine);
+
+    return CSV_HANDLER__OK;
+}
+
+/**
+ * Get the line number as string.
+ *
+ * @param outputString
+ */
+char csv_handler_output_line_number(char **outputString)
+{
+    if (*outputString != NULL) {
+        free(*outputString);
+        *outputString = NULL;
+    }
+
+    int num = csvh_line_helper_get_line_num();
+
+    int numLen = countDigits(num);
+    numLen = (numLen > linePad) ? numLen : linePad;
+    *outputString = malloc(sizeof(char) * (numLen + 1));
+    if (*outputString == NULL) {
+        return CSV_HANDLER__OUT_OF_MEMORY;
+    }
+
+    if (numLen < linePad) {
+        sprintf(*outputString, "% 3d", num);
+    } else {
+        sprintf(*outputString, "%d", num);
+    }
+
+    return CSV_HANDLER__OK;
+}
+
+/**
+ * Get the blank padding for lines without numbers (like borders).
+ *
+ * @param   outputString
+ */
+char csv_handler_output_line_padding(char **outputString)
+{
+    if (*outputString != NULL) {
+        free(*outputString);
+        *outputString = NULL;
+    }
+
+    *outputString = malloc(sizeof(char) * linePad + 1);
+    if (*outputString == NULL) {
+        return CSV_HANDLER__OUT_OF_MEMORY;
+    }
+    for (int i = 0; i < linePad; i++) {
+        (*outputString)[i] = ' ';
+    }
+    (*outputString)[linePad] = '\0';
 
     return CSV_HANDLER__OK;
 }
@@ -1080,7 +1139,7 @@ static char setHeadersAsNumbers()
 static int countDigits(int num)
 {
     int cnt = 1;
-    while (num > 10) {
+    while (num >= 10) {
         num/=10;
         cnt++;
     }
