@@ -129,9 +129,7 @@ char csv_handler_read_next_line()
         // Have a line in memory being held, so just switch around the pointers.
         line = lineBuff;
         lineBuff = NULL;
-
     } else {
-
         // Might be good to abstract this to a different function?
         line = malloc(sizeof(char));
 
@@ -226,6 +224,10 @@ char csv_handler_set_headers_from_line()
     // Not using getParsedLine because don't want to filter anything out for
     // headers.
 
+    if (headers == NULL) {
+        return CSV_HANDLER__OUT_OF_MEMORY;
+    }
+
     return CSV_HANDLER__OK;
 }
 
@@ -253,7 +255,17 @@ char csv_handler_restrict_by_ranges(char *critHeader, char *ranges)
         return CSV_HANDLER__HEADER_NOT_FOUND;
     }
 
-    return csvh_line_helper_init_ranges(critInd, ranges);
+    char rc = csvh_line_helper_init_ranges(critInd, ranges);
+
+    if (rc == CSVH_LINE_HELPER__INVALID_INPUT) {
+        return CSV_HANDLER__INVALID_INPUT;
+    }
+
+    if (rc != CSVH_LINE_HELPER__OK) {
+        return CSV_HANDLER__UNKNOWN_ERROR;
+    }
+
+    return CSV_HANDLER__OK;
 }
 
 /**
@@ -270,7 +282,13 @@ char csv_handler_restrict_by_equals(char *critHeader, char *equals)
         return CSV_HANDLER__HEADER_NOT_FOUND;
     }
 
-    return csvh_line_helper_init_equals(critInd, equals);
+    char rc = csvh_line_helper_init_equals(critInd, equals);
+
+    if (rc == CSVH_LINE_HELPER__INVALID_INPUT) {
+        return CSV_HANDLER__INVALID_INPUT;
+    }
+
+    return CSV_HANDLER__OK;
 }
 
 /**
@@ -408,8 +426,8 @@ char csv_handler_output_line_number(char **outputString)
     int num = csvh_line_helper_get_line_num();
 
     int numLen = countDigits(num);
-    numLen = (numLen > linePad) ? numLen : linePad;
-    *outputString = malloc(sizeof(char) * (numLen + 1));
+    int sizeDum = (numLen > linePad) ? numLen : linePad;
+    *outputString = malloc(sizeof(char) * (sizeDum + 1));
     if (*outputString == NULL) {
         return CSV_HANDLER__OUT_OF_MEMORY;
     }
@@ -878,6 +896,7 @@ static char getParsedLine(char ***parsedLine)
     if (selectedFields == NULL) {
         *parsedLine = parse_csv(line, delim);
         if (*parsedLine == NULL) {
+            // Is this right?  I think it could mean it's unparseable.
             return CSV_HANDLER__OUT_OF_MEMORY;
         }
 
