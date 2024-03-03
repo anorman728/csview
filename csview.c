@@ -19,6 +19,12 @@ char **argvG;
 
 char normalPrint();
 
+char transposedPrint();
+
+char verticalPrint();
+
+char rawPrint();
+
 void printError(char rc);
 
 char *getPassedOption(char in);
@@ -38,8 +44,23 @@ int main(int argc, char **argv)
     //csv_handler_set_has_headers(0); // TODO: Make option.
     //csv_handler_set_delim(',');// TODO: Make option.
 
+    RETURN_ERR_IF_APP(csv_handler_read_next_line())
+    RETURN_ERR_IF_APP(csv_handler_set_headers_from_line())
+    //csv_handler_set_selected_fields(/* TODO */);
+
+    // TODO set restrictions here.
+
     // START Normal format.
     switch (getPassedOption('f')[0]) {
+        case 't':
+            rc = transposedPrint();
+            break;
+        case 'v':
+            rc = verticalPrint();
+            break;
+        case 'r':
+            rc = rawPrint();
+            break;
         default:
             rc = normalPrint();
             break;
@@ -57,14 +78,10 @@ char normalPrint() {
     char *borderPadd = NULL;
     char rc = 0;
 
-    RETURN_ERR_IF_APP(csv_handler_read_next_line())
-    RETURN_ERR_IF_APP(csv_handler_set_headers_from_line())
-    //csv_handler_set_selected_fields(/* TODO */);
-
     // Print header.
-    csv_handler_output_line_padding(&borderPadd);
-    csv_handler_border_line(&borderLine);
-    csv_handler_output_line(&outputLine);
+    RETURN_ERR_IF_APP(csv_handler_output_line_padding(&borderPadd))
+    RETURN_ERR_IF_APP(csv_handler_border_line(&borderLine))
+    RETURN_ERR_IF_APP(csv_handler_output_line(&outputLine))
 
     printf("%s", borderPadd);
     printf("%s\n", borderLine);
@@ -74,8 +91,6 @@ char normalPrint() {
 
     printf("%s", borderPadd);
     printf("%s\n", borderLine);
-
-    // TODO: Restrictions here.
 
     // Print content.
     while ((rc = csv_handler_read_next_line()) == CSV_HANDLER__OK) {
@@ -97,7 +112,96 @@ char normalPrint() {
     free(borderLine);
     free(borderPadd);
 
-    return rc;
+    return 0;
+}
+
+/**
+ * Transposed printing.
+ */
+char transposedPrint()
+{
+    char *outputLine = NULL;
+    char *borderLine = NULL;
+    char rc = 0;
+
+    RETURN_ERR_IF_APP(csv_handler_initialize_transpose()) // This pulls *everything* into memory;
+
+    RETURN_ERR_IF_APP(csv_handler_transposed_number_line(&outputLine))
+    printf("%s\n", outputLine);
+
+    RETURN_ERR_IF_APP(csv_handler_transposed_border_line(&borderLine))
+    printf("%s\n", borderLine);
+
+    while ((rc = csv_handler_transposed_line(&outputLine)) == CSV_HANDLER__OK) {
+        printf("%s\n", outputLine);
+    }
+
+    if (rc != CSV_HANDLER__DONE) {
+        printError(rc);
+        return rc;
+    }
+
+    printf("%s\n", borderLine);
+    free(outputLine);
+    free(borderLine);
+
+    return 0;
+}
+
+/**
+ * Vertical printing.
+ */
+char verticalPrint()
+{
+    char *outputLine = NULL;
+    char *borderLine = NULL;
+    char rc = 0;
+
+    RETURN_ERR_IF_APP(csv_handler_vertical_border_line(&borderLine))
+
+    while ((rc = csv_handler_read_next_line()) == CSV_HANDLER__OK) {
+        printf("%s\n", borderLine);
+        RETURN_ERR_IF_APP(csv_handler_output_vertical_entry(&outputLine));
+        printf("%s\n", outputLine);
+    }
+
+    if (rc != CSV_HANDLER__DONE) {
+        return rc;
+    }
+
+    //printf("%s\n", borderLine); // I think I like it better without the final line.
+
+    free(outputLine);
+    free(borderLine);
+
+    return 0;
+}
+
+/**
+ * Print raw formatting.
+ */
+char rawPrint()
+{
+    char *outputLine = NULL;
+    char rc = 0;
+
+    RETURN_ERR_IF_APP(csv_handler_raw_line(&outputLine))
+    printf("%s\n", outputLine);
+    // This is necessary because already read first line!  So can't call
+    // csv_handler_read_next_line again until this one is printed.
+
+    while ((rc = csv_handler_read_next_line()) == CSV_HANDLER__OK) {
+        csv_handler_raw_line(&outputLine);
+        printf("%s\n", outputLine);
+    }
+
+    if (rc != CSV_HANDLER__DONE) {
+        return rc;
+    }
+
+    free(outputLine);
+
+    return 0;
 }
 
 /**
