@@ -23,6 +23,8 @@ char getPassedOption(char in);
 
 char isFlagSet(char in);
 
+char normalPrint();
+
 // END forward declarations for helper functions.
 
 int main(int argc, char **argv)
@@ -30,9 +32,6 @@ int main(int argc, char **argv)
     argcG = argc;
     argvG = argv;
 
-	char *outputLine = NULL;
-    char *borderLine = NULL;
-    char *borderPadd = NULL;
     char rc = 0;
 
     //csv_handler_set_width(15); // TODO: Make option.
@@ -40,6 +39,24 @@ int main(int argc, char **argv)
     //csv_handler_set_delim(',');// TODO: Make option.
 
     // START Normal format.
+    switch (getPassedOption('f')) {
+        default:
+            rc = normalPrint();
+            break;
+    }
+
+    return rc;
+}
+
+/**
+ * Normal printing.
+ */
+char normalPrint() {
+	char *outputLine = NULL;
+    char *borderLine = NULL;
+    char *borderPadd = NULL;
+    char rc = 0;
+
     RETURN_ERR_IF_APP(csv_handler_read_next_line())
     RETURN_ERR_IF_APP(csv_handler_set_headers_from_line())
     //csv_handler_set_selected_fields(/* TODO */);
@@ -60,6 +77,7 @@ int main(int argc, char **argv)
 
     // TODO: Restrictions here.
 
+    // Print content.
     while ((rc = csv_handler_read_next_line()) == CSV_HANDLER__OK) {
         RETURN_ERR_IF_APP(csv_handler_output_line_number(&outputLine))
         printf("%s", outputLine);
@@ -75,12 +93,11 @@ int main(int argc, char **argv)
     printf("%s", borderPadd);
     printf("%s\n", borderLine);
 
-    // END Normal format.
-
-
     free(outputLine);
     free(borderLine);
     free(borderPadd);
+
+    return rc;
 }
 
 /**
