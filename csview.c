@@ -10,14 +10,26 @@
         return rc;\
     }
 
+
+int argcG;
+
+char **argvG;
+
 // START forward declarations for helper functions.
 
 void printError(char rc);
+
+char getPassedOption(char in);
+
+char isFlagSet(char in);
 
 // END forward declarations for helper functions.
 
 int main(int argc, char **argv)
 {
+    argcG = argc;
+    argvG = argv;
+
 	char *outputLine = NULL;
     char *borderLine = NULL;
     char *borderPadd = NULL;
@@ -115,4 +127,43 @@ void printError(char rc)
             break;
     }
     printf("\n");
+}
+
+/**
+ * Get an option that was passed from the command line.  Just uses a single
+ * character in and a single character out.  Return 0 (Null) if DNE.
+ *
+ * @param   in
+ */
+char getPassedOption(char in)
+{
+    for (int i = 1; i < argcG - 1; i++) {
+        // Starting at 1 because 0 is just executable name.
+        // Ending at argcG - 1 because if the *last* string starts with '-',
+        // then there is no argument following it.
+        if (argvG[i][0] == '-' && argvG[i][1] == in) {
+            // Note that argvG[i][1] must exist, though it might be '\0'.
+            return argvG[i+1][0];
+        }
+    }
+
+    return 0;
+}
+
+/**
+ * Determine if a flag is set.
+ *
+ * @param   in
+ */
+char isFlagSet(char in)
+{
+    for (int i = 1; i < argcG; i++) {
+        // Starting at 1 again bc 0 is exe name.
+        if (argvG[i][0] == '-' && argvG[i][1] == in) {
+            // Note that argvG[i][1] must exist, though it might be '\0'.
+            return 1;
+        }
+    }
+
+    return 0;
 }
