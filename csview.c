@@ -17,13 +17,13 @@ char **argvG;
 
 // START forward declarations for helper functions.
 
+char normalPrint();
+
 void printError(char rc);
 
-char getPassedOption(char in);
+char *getPassedOption(char in);
 
 char isFlagSet(char in);
-
-char normalPrint();
 
 // END forward declarations for helper functions.
 
@@ -39,7 +39,7 @@ int main(int argc, char **argv)
     //csv_handler_set_delim(',');// TODO: Make option.
 
     // START Normal format.
-    switch (getPassedOption('f')) {
+    switch (getPassedOption('f')[0]) {
         default:
             rc = normalPrint();
             break;
@@ -148,11 +148,11 @@ void printError(char rc)
 
 /**
  * Get an option that was passed from the command line.  Just uses a single
- * character in and a single character out.  Return 0 (Null) if DNE.
+ * character in and a string out.  Return "" if DNE.
  *
  * @param   in
  */
-char getPassedOption(char in)
+char *getPassedOption(char in)
 {
     for (int i = 1; i < argcG - 1; i++) {
         // Starting at 1 because 0 is just executable name.
@@ -160,11 +160,11 @@ char getPassedOption(char in)
         // then there is no argument following it.
         if (argvG[i][0] == '-' && argvG[i][1] == in) {
             // Note that argvG[i][1] must exist, though it might be '\0'.
-            return argvG[i+1][0];
+            return argvG[i+1];
         }
     }
 
-    return 0;
+    return "";
 }
 
 /**
