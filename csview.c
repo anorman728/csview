@@ -129,9 +129,18 @@ char normalPrint() {
     char *borderLine = NULL;
     char *borderPadd = NULL;
     char rc = 0;
+    char showLineNums = !isFlagSet('s');
 
     // Print header.
-    RETURN_ERR_IF_APP(csv_handler_output_line_padding(&borderPadd))
+    if (showLineNums) {
+        RETURN_ERR_IF_APP(csv_handler_output_line_padding(&borderPadd))
+    } else {
+        // Code-wise, easiest to just make this an empty string, even if that's
+        // not memory- or CPU-efficient.
+        borderPadd = malloc(sizeof(char));
+        borderPadd[0] = '\0';
+        // Kinda ridiculous, but helps for code consistency to put on heap.
+    }
     RETURN_ERR_IF_APP(csv_handler_border_line(&borderLine))
     RETURN_ERR_IF_APP(csv_handler_output_line(&outputLine))
 
@@ -146,8 +155,10 @@ char normalPrint() {
 
     // Print content.
     while ((rc = csv_handler_read_next_line()) == CSV_HANDLER__OK) {
-        RETURN_ERR_IF_APP(csv_handler_output_line_number(&outputLine))
-        printf("%s", outputLine);
+        if (showLineNums) {
+            RETURN_ERR_IF_APP(csv_handler_output_line_number(&outputLine))
+            printf("%s", outputLine);
+        }
         RETURN_ERR_IF_APP(csv_handler_output_line(&outputLine))
         printf("%s\n", outputLine);
     }
@@ -178,8 +189,11 @@ char transposedPrint()
 
     RETURN_ERR_IF_APP(csv_handler_initialize_transpose()) // This pulls *everything* into memory;
 
-    RETURN_ERR_IF_APP(csv_handler_transposed_number_line(&outputLine))
-    printf("%s\n", outputLine);
+    if (!isFlagSet('s')) {
+        // Don't suppress line numbers.
+        RETURN_ERR_IF_APP(csv_handler_transposed_number_line(&outputLine))
+        printf("%s\n", outputLine);
+    }
 
     RETURN_ERR_IF_APP(csv_handler_transposed_border_line(&borderLine))
     printf("%s\n", borderLine);
@@ -208,12 +222,17 @@ char verticalPrint()
     char *outputLine = NULL;
     char *borderLine = NULL;
     char rc = 0;
+    char showLineNums = !isFlagSet('s');
 
     RETURN_ERR_IF_APP(csv_handler_vertical_border_line(&borderLine))
 
     while ((rc = csv_handler_read_next_line()) == CSV_HANDLER__OK) {
-        RETURN_ERR_IF_APP(csv_handler_output_line_number(&outputLine))
-        printf("%s Line %s %s\n", borderLine, outputLine, borderLine);
+        if (showLineNums) {
+            RETURN_ERR_IF_APP(csv_handler_output_line_number(&outputLine))
+            printf("%s Line %s %s\n", borderLine, outputLine, borderLine);
+        } else {
+            printf("%s%s\n", borderLine,borderLine);
+        }
 
         RETURN_ERR_IF_APP(csv_handler_output_vertical_entry(&outputLine));
         printf("%s\n", outputLine);
