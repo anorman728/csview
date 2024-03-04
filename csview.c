@@ -27,6 +27,8 @@ char rawPrint();
 
 void printError(char rc);
 
+char printHeaders();
+
 char *getPassedOption(char in);
 
 char isFlagSet(char in);
@@ -40,13 +42,25 @@ int main(int argc, char **argv)
 
     char rc = 0;
 
-    //csv_handler_set_width(15); // TODO: Make option.
-    //csv_handler_set_has_headers(0); // TODO: Make option.
-    //csv_handler_set_delim(',');// TODO: Make option.
+    if (isFlagSet('w')) {
+        csv_handler_set_width(atoi(getPassedOption('w')));
+    }
+    if (isFlagSet('n')) {
+        csv_handler_set_has_headers(0);
+    }
+    if (isFlagSet('d')) {
+        csv_handler_set_delim(getPassedOption('d')[0]);
+    }
 
     RETURN_ERR_IF_APP(csv_handler_read_next_line())
     RETURN_ERR_IF_APP(csv_handler_set_headers_from_line())
     //csv_handler_set_selected_fields(/* TODO */);
+
+    // If applicable, print headers and exit.
+    if (isFlagSet('h')) {
+        RETURN_ERR_IF_APP(printHeaders())
+        return 0;
+    }
 
     // TODO set restrictions here.
 
@@ -248,6 +262,26 @@ void printError(char rc)
             break;
     }
     printf("\n");
+}
+
+/**
+ * Print the headers.
+ */
+char printHeaders()
+{
+    char *outputLine = NULL;
+    char rc;
+    while ((rc = csv_handler_output_headers(&outputLine)) == CSV_HANDLER__OK) {
+        printf("%s\n", outputLine);
+    }
+
+    free(outputLine);
+
+    if (rc != CSV_HANDLER__DONE) {
+        return rc;
+    }
+
+    return CSV_HANDLER__OK;
 }
 
 /**
