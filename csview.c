@@ -52,9 +52,15 @@ int main(int argc, char **argv)
         csv_handler_set_delim(getPassedOption('d')[0]);
     }
 
-    RETURN_ERR_IF_APP(csv_handler_read_next_line())
+    if ((rc = csv_handler_read_next_line()) != CSV_HANDLER__OK) {
+        if (rc == CSV_HANDLER__DONE) {
+            printf("File empty or is directory.\n");
+        } else {
+            printError(rc);
+        }
+        return rc;
+    }
     RETURN_ERR_IF_APP(csv_handler_set_headers_from_line())
-    //csv_handler_set_selected_fields(/* TODO */);
 
     // If applicable, print headers and exit.
     if (isFlagSet('h')) {
@@ -62,10 +68,13 @@ int main(int argc, char **argv)
         return 0;
     }
 
+    //if (isFlagSet('f')) {
+    //    csv_handler_set_selected_fields(getPassedOption('f'));
+    //}
     // TODO set restrictions here.
 
     // START Normal format.
-    switch (getPassedOption('f')[0]) {
+    switch (getPassedOption('o')[0]) {
         case 't':
             rc = transposedPrint();
             break;
