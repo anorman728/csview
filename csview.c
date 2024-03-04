@@ -174,7 +174,9 @@ char verticalPrint()
     RETURN_ERR_IF_APP(csv_handler_vertical_border_line(&borderLine))
 
     while ((rc = csv_handler_read_next_line()) == CSV_HANDLER__OK) {
-        printf("%s\n", borderLine);
+        RETURN_ERR_IF_APP(csv_handler_output_line_number(&outputLine))
+        printf("%s Line %s %s\n", borderLine, outputLine, borderLine);
+
         RETURN_ERR_IF_APP(csv_handler_output_vertical_entry(&outputLine));
         printf("%s\n", outputLine);
     }
