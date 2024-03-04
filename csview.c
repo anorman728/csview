@@ -29,7 +29,7 @@ void printError(char rc);
 
 char printHeaders();
 
-char *getPassedOption(char in);
+char *getPassedOption(char in, char pos);
 
 char isFlagSet(char in);
 
@@ -43,13 +43,13 @@ int main(int argc, char **argv)
     char rc = 0;
 
     if (isFlagSet('w')) {
-        csv_handler_set_width(atoi(getPassedOption('w')));
+        csv_handler_set_width(atoi(getPassedOption('w', 1)));
     }
     if (isFlagSet('n')) {
         csv_handler_set_has_headers(0);
     }
     if (isFlagSet('d')) {
-        csv_handler_set_delim(getPassedOption('d')[0]);
+        csv_handler_set_delim(getPassedOption('d', 1)[0]);
     }
 
     if ((rc = csv_handler_read_next_line()) != CSV_HANDLER__OK) {
@@ -68,13 +68,42 @@ int main(int argc, char **argv)
         return 0;
     }
 
-    //if (isFlagSet('f')) {
-    //    csv_handler_set_selected_fields(getPassedOption('f'));
-    //}
-    // TODO set restrictions here.
+    if (isFlagSet('f')) {
+        RETURN_ERR_IF_APP(
+            csv_handler_set_selected_fields(getPassedOption('f', 1))
+        )
+    }
+
+    // Set restrictions.
+    switch (getPassedOption('r', 1)[0]) {
+        case 'l':
+            RETURN_ERR_IF_APP(
+                csv_handler_restrict_by_lines(
+                    getPassedOption('r', 2)
+                )
+            )
+            break;
+        case 'r':
+            RETURN_ERR_IF_APP(
+                csv_handler_restrict_by_ranges(
+                    getPassedOption('r', 2),
+                    getPassedOption('r', 3)
+                )
+            )
+            break;
+        case 'e':
+            RETURN_ERR_IF_APP(
+                csv_handler_restrict_by_equals(
+                    getPassedOption('r', 2),
+                    getPassedOption('r', 3)
+                )
+            )
+            break;
+        // No default.  That just means no restrictions.
+    }
 
     // START Normal format.
-    switch (getPassedOption('o')[0]) {
+    switch (getPassedOption('o', 1)[0]) {
         case 't':
             rc = transposedPrint();
             break;
@@ -300,8 +329,9 @@ char printHeaders()
  * character in and a string out.  Return "" if DNE.
  *
  * @param   in
+ * @param   pos
  */
-char *getPassedOption(char in)
+char *getPassedOption(char in, char pos)
 {
     for (int i = 1; i < argcG - 1; i++) {
         // Starting at 1 because 0 is just executable name.
@@ -309,7 +339,7 @@ char *getPassedOption(char in)
         // then there is no argument following it.
         if (argvG[i][0] == '-' && argvG[i][1] == in) {
             // Note that argvG[i][1] must exist, though it might be '\0'.
-            return argvG[i+1];
+            return argvG[i + pos];
         }
     }
 
