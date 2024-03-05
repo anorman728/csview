@@ -4,7 +4,7 @@ But that's not really the fault of Excel or any other spreadsheet software.  It'
 
 Constantly frustrated with having no good solution to viewing data in a CSV file, I finally decided to make this program to read CSV files without the problem of spreadsheets showing me misinterpreted data.
 
-csv.c (and its header file) is taken from here-- https://github.com/semitrivial/csv\_parser/tree/master.  It's been modded by adding a delimiter option and making one static function non-static.  I am immensely grateful to its author for making this project much easier.
+csv.c (and its header file) is taken from here-- https://github.com/semitrivial/csv_parser/tree/master.  It's been modded by adding a delimiter option and making one static function non-static.  I am immensely grateful to its author for making this project much easier.
 
 I'm really just making this for myself, so I'm only adding features that I need at the moment.  It only reads and does not edit, for starters.  More functions may be added as-needed in the future, but if you're reading this and you need a new feature, you'll probably need to fork the project and add it yourself.
 
