@@ -116,6 +116,28 @@ void csv_handler_set_delim(char delimIn)
 }
 
 /**
+ * Skip next line before even reading it.
+ */
+char csv_handler_skip_next_line()
+{
+    int buffsize = 255;
+    char buff[buffsize];
+    while (1) {
+        if (fgets(buff, buffsize, stdin) == NULL) {
+            // This will happen *after* the final line has already been read.
+            return CSV_HANDLER__DONE;
+        }
+
+        if (buff[strlen(buff) - 1] == '\n') {
+            // Reached EOL.
+            break;
+        }
+    }
+
+    return CSV_HANDLER__OK;
+}
+
+/**
  * Read next line into memory.
  */
 char csv_handler_read_next_line()

@@ -52,6 +52,14 @@ int main(int argc, char **argv)
         csv_handler_set_delim(getPassedOption('d', 1)[0]);
     }
 
+    if (isFlagSet('k')) {
+        // I know this letter sucks, but 's' is already used.
+        int skipLines = atoi(getPassedOption('k', 1));
+        for (int i = 0; i < skipLines; i++) {
+            csv_handler_skip_next_line();
+        }
+    }
+
     if ((rc = csv_handler_read_next_line()) != CSV_HANDLER__OK) {
         if (rc == CSV_HANDLER__DONE) {
             printf("File empty or is directory.\n");

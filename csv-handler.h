@@ -19,6 +19,8 @@ void csv_handler_set_has_headers(char hasHeadersIn);
 
 void csv_handler_set_delim(char delimIn);
 
+char csv_handler_skip_next_line();
+
 char csv_handler_read_next_line();
 
 char csv_handler_set_headers_from_line();
