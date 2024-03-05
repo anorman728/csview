@@ -14,8 +14,6 @@ Normal view:
 
 `csview < /path/to/csv/file`
 
-Transposed output:
-
        +-----------------------------------------------------------------------------------------------+
        |Last Name      |First Name     |Cell Number    |VIN            |Customer ID    |Purchase Amount|
        +-----------------------------------------------------------------------------------------------+
@@ -24,6 +22,8 @@ Transposed output:
       3|Johnson        |Michael        |555-555-5555   |5YJ3E1EA7JF1234|345678901234567|300.25         |
       4|Williams       |Emily          |333-333-3333   |1FTEW1EP1LKD123|456789012345678|150.00         |
        +-----------------------------------------------------------------------------------------------+
+
+Transposed output:
 
 `csview -o t < /path/to/csv/file`
 
