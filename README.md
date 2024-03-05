@@ -92,7 +92,7 @@ Other options by example (they're weird, I know):
 
 `csview -k 2 < /path/to/csv/file` (sKip) Skips the first 2 lines.
 
-`csview -f "Last Name,Customer ID" < /path/to/csv/file` (Field) Shows just Last Name and Customer ID columns.
+`csview -f "Last Name,Customer ID" < /path/to/csv/file` (Field) Shows just Last Name and Customer ID columns. (Note: If you get a "Segmentation Fault" error, that probably means you mistyped a field name!  I'll try to fix that sometime.)
 
 `csview -r l "2-5,7,10-14" < /path/to/csv/file` (Restrict by Lines) Only displays lines in those ranges.
 
