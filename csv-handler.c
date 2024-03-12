@@ -183,7 +183,7 @@ char csv_handler_read_next_line()
             strcat(line, buff);
 
             size_t lst = strlen(line) - 1;
-            if (line[lst] == '\n' && ((countHeaders = count_fields(line, delim)) != -1)) {
+            if ((countHeaders = count_fields(line, delim)) != -1) {
                 // If count_fields is -1, then that means the line is not parseable
                 // as a CSV line, which probably means that the file has a field
                 // with a line break in it, meaning we have to include both of the
@@ -197,7 +197,16 @@ char csv_handler_read_next_line()
                 // newline, we'll get an unparseable string and csv.c will return
                 // null.
 
-                line[lst] = '\0'; // Removing newline, but not reallocing.
+                if (line[lst] == '\n') {
+                    line[lst] = '\0'; // Removing newline, but not reallocing.
+                }
+
+                if (line[lst - 1] == '\r') {
+                    // Because DOS line endings.
+                    line[lst - 1] = '\0'; // Remove nonsense, but not reallocing.
+                }
+                // Technically, this assumes that the line is longer than 2 characters.  Oh, well.
+
                 break;
             }
         }
@@ -557,7 +566,7 @@ char csv_handler_output_vertical_entry(char **outputEntry)
     *outputEntry = malloc(sizeof(char));
     (*outputEntry)[0] = '\0';
 
-    for (int i = 0; parsedLine[i] != NULL; i++) {
+    for (int i = 0; parsedLine[i] != NULL && headers[i] != NULL; i++) {
         *outputEntry = realloc(
             *outputEntry,
             strlen(*outputEntry)
@@ -693,6 +702,14 @@ char csv_handler_transposed_line(char **outputLine)
     }
 
     int headerInd = (selectedFields == NULL) ? ind : selectedFields[ind];
+
+    if (headers[headerInd] == NULL) {
+        // If reach end of HEADERS, then force stop.  This unfortunately happens
+        // with files that have trailing commas at the end of the line.  That
+        // means that the file is malformed, but it happens so often that I
+        // don't want to just return an error code.
+        return CSV_HANDLER__DONE;
+    }
 
     char *headerDum = malloc(sizeof(char) * (strlen(headers[headerInd]) + 3));
     // Start with opening [, header, ], and null term.
