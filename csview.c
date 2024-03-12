@@ -6,6 +6,7 @@
 // Internal-use-only macro.
 #define RETURN_ERR_IF_APP(EXPR) \
     if ((rc = EXPR)) {\
+        csv_handler_close(); \
         printError(rc);\
         return rc;\
     }
@@ -125,6 +126,8 @@ int main(int argc, char **argv)
             rc = normalPrint();
             break;
     }
+
+    csv_handler_close();
 
     return rc;
 }

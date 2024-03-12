@@ -886,6 +886,7 @@ char csv_handler_set_selected_fields(char *fields)
         }
         if (selectedFields[i] == -1) {
             // Nothing was found, so return rc.
+            free_csv_line(fieldArr);
             return CSV_HANDLER__HEADER_NOT_FOUND;
         }
     }
