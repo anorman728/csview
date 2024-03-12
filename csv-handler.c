@@ -1128,7 +1128,7 @@ static char copyArrayOfStrings(char ***destArray, char ***srcArray, int *specInd
 static int getHeaderIndexFromString(char *critHeader)
 {
     int critInd = -1;
-    for (;strcmp(critHeader, headers[++critInd]) != 0 && headers[critInd] != NULL;) {}
+    for (;headers[++critInd] != NULL && strcmp(critHeader, headers[critInd]) != 0;) {}
 
     if (headers[critInd] == NULL) {
         // Not found.
