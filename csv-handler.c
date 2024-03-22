@@ -199,15 +199,19 @@ char csv_handler_read_next_line()
 
                 if (line[lst] == '\n') {
                     line[lst] = '\0'; // Removing newline, but not reallocing.
+
+                    if (line[lst - 1] == '\r') {
+                        // Because DOS line endings.
+                        line[lst - 1] = '\0'; // Remove nonsense, but not reallocing.
+                    }
+                    // Technically, this assumes that the line is longer than 2 characters.  Oh, well.
+
+                    break;
+
+                    // I know this nested-nested if is bad, but I don't have
+                    // time to do it properly right now.
                 }
 
-                if (line[lst - 1] == '\r') {
-                    // Because DOS line endings.
-                    line[lst - 1] = '\0'; // Remove nonsense, but not reallocing.
-                }
-                // Technically, this assumes that the line is longer than 2 characters.  Oh, well.
-
-                break;
             }
         }
     }
